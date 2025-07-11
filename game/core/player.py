@@ -416,6 +416,50 @@ class Player:
         
         return newly_unlocked
     
+    def _update_quests_compatibility(self):
+        """
+        更新任务兼容性 - 为旧存档添加新任务
+        这确保了从旧版本加载的存档能够包含所有新任务
+        """
+        # v4.8新增的任务列表
+        new_quests_v48 = {
+            # 新增区域任务
+            "🌊 深海守护": {"completed": False, "progress": 0, "target": 5, "reward": 400, "type": "combat"},
+            "🏜️ 沙漠商队": {"completed": False, "progress": 0, "target": 3, "reward": 350, "type": "combat"},
+            "🏛️ 地下城净化": {"completed": False, "progress": 0, "target": 4, "reward": 500, "type": "combat"},
+            "🌌 星空探索": {"completed": False, "progress": 0, "target": 2, "reward": 600, "type": "combat"},
+            "🎪 奇幻马戏团": {"completed": False, "progress": 0, "target": 3, "reward": 300, "type": "combat"},
+            
+            # 收集类任务
+            "🧪 炼金材料": {"completed": False, "progress": 0, "target": 5, "reward": 200, "type": "collect"},
+            "📚 古老知识": {"completed": False, "progress": 0, "target": 3, "reward": 250, "type": "collect"},
+            "🎭 神秘面具": {"completed": False, "progress": 0, "target": 1, "reward": 400, "type": "collect"},
+            "🔮 魔法水晶": {"completed": False, "progress": 0, "target": 4, "reward": 350, "type": "collect"},
+            
+            # 挑战类任务
+            "⚔️ 武器大师": {"completed": False, "progress": 0, "target": 1, "reward": 500, "type": "challenge"},
+            "🛡️ 防御专家": {"completed": False, "progress": 0, "target": 1, "reward": 400, "type": "challenge"},
+            "🏆 竞技冠军": {"completed": False, "progress": 0, "target": 10, "reward": 800, "type": "challenge"},
+            "🎯 神射手": {"completed": False, "progress": 0, "target": 50, "reward": 300, "type": "challenge"},
+            
+            # 社交类任务  
+            "🤝 友谊之桥": {"completed": False, "progress": 0, "target": 5, "reward": 200, "type": "social"},
+            "💰 商业帝国": {"completed": False, "progress": 0, "target": 1000, "reward": 100, "type": "social"},
+            "🎨 艺术赞助": {"completed": False, "progress": 0, "target": 3, "reward": 300, "type": "social"}
+        }
+        
+        # 检查并添加缺失的任务
+        added_quests = []
+        for quest_name, quest_data in new_quests_v48.items():
+            if quest_name not in self.quests:
+                self.quests[quest_name] = quest_data.copy()
+                added_quests.append(quest_name)
+        
+        # 如果添加了新任务，显示提示
+        if added_quests:
+            print(f"🆕 兼容性更新：为你的存档添加了 {len(added_quests)} 个新任务！")
+            print("💡 你现在可以探索新的区域和挑战新的任务了！")
+    
     def show_achievements(self):
         """Display all achievements with completion status"""
         print("\n🏆 === 成就系统 ===")
@@ -980,6 +1024,8 @@ class Player:
             player.max_mana = save_data.get('max_mana', 100)
             player.equipment = save_data.get('equipment', player.equipment)
             player.quests = save_data.get('quests', player.quests)
+            # 兼容性修复：为旧存档添加新任务
+            player._update_quests_compatibility()
             player.achievements = save_data.get('achievements', player.achievements)
             player.stats = save_data.get('stats', player.stats)
             player.status_effects = save_data.get('status_effects', player.status_effects)
