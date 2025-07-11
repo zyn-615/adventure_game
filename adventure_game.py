@@ -429,7 +429,7 @@ class Player:
     
     def equip_item(self, item):
         if item in self.inventory:
-            if item in ["🗡️ 木剑", "⚔️ 铁剑", "🗡️ 精钢剑"]:
+            if item in ["🗡️ 木剑", "⚔️ 铁剑", "🗡️ 精钢剑", "🏹 长弓", "⚔️ 双手剑"]:
                 if self.equipment["weapon"] and self.equipment["weapon"] != item:
                     self.inventory.append(self.equipment["weapon"])
                 self.equipment["weapon"] = item

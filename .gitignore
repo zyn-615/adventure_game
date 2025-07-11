@@ -1,0 +1,21 @@
+# 游戏存档文件
+savegame_*.json
+save_*.json
+*.save
+
+# Python 缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 测试文件
+test_*.tmp
+*.test
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.temp
