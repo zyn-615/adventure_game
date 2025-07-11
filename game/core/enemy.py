@@ -192,21 +192,70 @@ class Enemy:
             "mana_ratio": player.mana / 50,
             "has_healing_items": "🍞 面包" in player.inventory,
             "active_effects": [],
-            "threat_level": "medium"
+            "threat_level": "medium",
+            "player_level": player.level,
+            "has_powerful_weapon": False,
+            "has_armor": False,
+            "can_use_skills": False,
+            "is_vulnerable": False
         }
+        
+        # Check player's equipment
+        if player.equipment.get("weapon") in ["🗡️ 精钢剑", "⚔️ 双手剑", "🏹 长弓"]:
+            analysis["has_powerful_weapon"] = True
+        if player.equipment.get("armor"):
+            analysis["has_armor"] = True
+            
+        # Check if player can use skills
+        analysis["can_use_skills"] = player.mana >= 8
         
         # Check player's active status effects
         for effect, data in player.status_effects.items():
             if data["duration"] > 0:
                 analysis["active_effects"].append(effect)
+                
+        # Check if player is in vulnerable state
+        if "stun" in analysis["active_effects"] or "freeze" in analysis["active_effects"]:
+            analysis["is_vulnerable"] = True
         
+        # More sophisticated threat assessment
+        threat_score = 0
+        
+        # Health factor
+        if analysis["health_ratio"] > 0.8:
+            threat_score += 3
+        elif analysis["health_ratio"] > 0.5:
+            threat_score += 2
+        elif analysis["health_ratio"] > 0.2:
+            threat_score += 1
+            
+        # Equipment factor
+        if analysis["has_powerful_weapon"]:
+            threat_score += 2
+        if analysis["has_armor"]:
+            threat_score += 1
+            
+        # Level factor
+        if player.level >= 5:
+            threat_score += 2
+        elif player.level >= 3:
+            threat_score += 1
+            
+        # Mana/skills factor
+        if analysis["can_use_skills"]:
+            threat_score += 1
+            
         # Determine threat level
-        if analysis["health_ratio"] < 0.3:
+        if threat_score >= 7:
+            analysis["threat_level"] = "critical"
+        elif threat_score >= 5:
+            analysis["threat_level"] = "high"
+        elif threat_score >= 3:
+            analysis["threat_level"] = "medium"
+        elif threat_score >= 1:
             analysis["threat_level"] = "low"
-        elif analysis["health_ratio"] > 0.7 and analysis["mana_ratio"] > 0.5:
-            analysis["threat_level"] = "high"
-        elif player.active_pet and player.active_pet.loyalty > 70:
-            analysis["threat_level"] = "high"
+        else:
+            analysis["threat_level"] = "minimal"
             
         return analysis
         
@@ -223,18 +272,25 @@ class Enemy:
         analysis = self.analyze_player_state(player)
         personality = self.ai_personality["traits"]
         
-        # Base actions available
+        # Expanded action set
         actions = [
             {"type": "normal_attack", "weight": 1.0, "damage_multiplier": 1.0},
             {"type": "heavy_attack", "weight": 0.3, "damage_multiplier": 1.5},
-            {"type": "defensive_stance", "weight": 0.2, "damage_multiplier": 0.7}
+            {"type": "defensive_stance", "weight": 0.2, "damage_multiplier": 0.7},
+            {"type": "desperate_attack", "weight": 0.1, "damage_multiplier": 2.0},
+            {"type": "tactical_retreat", "weight": 0.1, "damage_multiplier": 0.5},
+            {"type": "status_focus", "weight": 0.2, "damage_multiplier": 0.8},
+            {"type": "opportunistic_strike", "weight": 0.1, "damage_multiplier": 1.8}
         ]
         
-        # Modify action weights based on personality and situation
-        self._adjust_action_weights(actions, analysis, personality)
+        # Advanced action weight adjustments
+        self._advanced_action_weights(actions, analysis, personality)
         
         # Choose action based on weights
         total_weight = sum(action["weight"] for action in actions)
+        if total_weight <= 0:
+            return actions[0]  # Fallback to normal attack
+            
         choice = random.uniform(0, total_weight)
         
         for action in actions:
@@ -244,40 +300,134 @@ class Enemy:
                 
         return actions[0]  # Fallback
         
-    def _adjust_action_weights(self, actions, analysis, personality):
-        """Adjust action weights based on AI analysis."""
+    def _advanced_action_weights(self, actions, analysis, personality):
+        """Advanced action weight adjustments based on comprehensive analysis."""
         
-        # Aggressive personalities prefer heavy attacks
-        if personality["aggression"] > 0.6:
-            actions[1]["weight"] *= 1.5  # Heavy attack
-            
-        # Defensive personalities prefer defensive stance when threatened
-        if personality["self_preservation"] > 0.6 and analysis["threat_level"] == "high":
-            actions[2]["weight"] *= 2.0  # Defensive stance
-            
-        # Cunning enemies adapt to player behavior
-        if personality["adaptability"] > 0.7:
-            if self.consecutive_player_attacks > 2:
-                actions[2]["weight"] *= 1.8  # Become more defensive
-            if analysis["health_ratio"] < 0.4:
-                actions[1]["weight"] *= 1.3  # Desperate heavy attacks
-                
-        # Berserker behavior - more aggressive when low on health
-        if self.ai_personality["type"] == "berserker":
-            health_ratio = self.health / self.max_health
-            if health_ratio < 0.5:
-                actions[1]["weight"] *= (1.0 + (1.0 - health_ratio))
-                
-        # React to player's low health
-        if analysis["health_ratio"] < 0.3:
-            if personality["aggression"] > 0.5:
-                actions[1]["weight"] *= 1.4  # Finish them off
+        # Get current health ratio
+        my_health_ratio = self.health / self.max_health
+        
+        # Map action types to indices for easy access
+        action_map = {action["type"]: i for i, action in enumerate(actions)}
+        
+        # === THREAT LEVEL ADJUSTMENTS ===
+        if analysis["threat_level"] == "critical":
+            # Facing a very dangerous opponent
+            if personality["self_preservation"] > 0.6:
+                actions[action_map["defensive_stance"]]["weight"] *= 3.0
+                actions[action_map["tactical_retreat"]]["weight"] *= 2.0
             else:
-                actions[0]["weight"] *= 1.2  # Play it safe
+                actions[action_map["desperate_attack"]]["weight"] *= 2.5
+                actions[action_map["heavy_attack"]]["weight"] *= 1.8
                 
-        # React to player having healing items
-        if analysis["has_healing_items"] and personality["adaptability"] > 0.5:
-            actions[1]["weight"] *= 1.2  # Try to prevent healing
+        elif analysis["threat_level"] == "high":
+            # Strong opponent, need tactics
+            if personality["adaptability"] > 0.7:
+                actions[action_map["status_focus"]]["weight"] *= 2.0
+                actions[action_map["opportunistic_strike"]]["weight"] *= 1.5
+            if personality["aggression"] > 0.7:
+                actions[action_map["heavy_attack"]]["weight"] *= 1.5
+                
+        elif analysis["threat_level"] == "minimal":
+            # Weak opponent, be aggressive
+            actions[action_map["heavy_attack"]]["weight"] *= 1.8
+            actions[action_map["opportunistic_strike"]]["weight"] *= 1.6
+            
+        # === VULNERABILITY EXPLOITATION ===
+        if analysis["is_vulnerable"]:
+            # Player is stunned or frozen - capitalize!
+            actions[action_map["opportunistic_strike"]]["weight"] *= 4.0
+            actions[action_map["heavy_attack"]]["weight"] *= 2.0
+            actions[action_map["defensive_stance"]]["weight"] *= 0.1
+            
+        # === HEALTH-BASED STRATEGIES ===
+        if my_health_ratio < 0.3:
+            # Low health - desperate measures
+            if self.ai_personality["type"] == "berserker":
+                actions[action_map["desperate_attack"]]["weight"] *= 3.0
+                actions[action_map["heavy_attack"]]["weight"] *= 2.0
+            elif personality["self_preservation"] > 0.7:
+                actions[action_map["defensive_stance"]]["weight"] *= 2.5
+                actions[action_map["tactical_retreat"]]["weight"] *= 2.0
+            else:
+                actions[action_map["desperate_attack"]]["weight"] *= 1.5
+                
+        elif my_health_ratio > 0.8:
+            # High health - confident
+            if personality["aggression"] > 0.5:
+                actions[action_map["heavy_attack"]]["weight"] *= 1.3
+                actions[action_map["opportunistic_strike"]]["weight"] *= 1.2
+                
+        # === PLAYER STATE REACTIONS ===
+        if analysis["health_ratio"] < 0.2:
+            # Player is almost dead
+            if personality["aggression"] > 0.5:
+                actions[action_map["heavy_attack"]]["weight"] *= 2.0
+                actions[action_map["opportunistic_strike"]]["weight"] *= 1.8
+            else:
+                actions[action_map["normal_attack"]]["weight"] *= 1.5
+                
+        elif analysis["health_ratio"] > 0.8 and analysis["can_use_skills"]:
+            # Player is healthy and dangerous
+            if personality["adaptability"] > 0.6:
+                actions[action_map["status_focus"]]["weight"] *= 1.8
+                actions[action_map["defensive_stance"]]["weight"] *= 1.5
+                
+        # === EQUIPMENT CONSIDERATIONS ===
+        if analysis["has_powerful_weapon"]:
+            # Player has dangerous weapon
+            if personality["self_preservation"] > 0.5:
+                actions[action_map["defensive_stance"]]["weight"] *= 1.5
+                actions[action_map["tactical_retreat"]]["weight"] *= 1.3
+            elif personality["aggression"] > 0.8:
+                actions[action_map["desperate_attack"]]["weight"] *= 1.4
+                
+        # === BEHAVIORAL PATTERNS ===
+        if self.consecutive_player_attacks > 3:
+            # Player is being very aggressive
+            if personality["adaptability"] > 0.6:
+                actions[action_map["defensive_stance"]]["weight"] *= 2.0
+                actions[action_map["tactical_retreat"]]["weight"] *= 1.5
+            elif self.ai_personality["type"] == "cunning":
+                actions[action_map["status_focus"]]["weight"] *= 1.8
+                actions[action_map["opportunistic_strike"]]["weight"] *= 1.4
+                
+        # === HEALING PREVENTION ===
+        if analysis["has_healing_items"] and analysis["health_ratio"] < 0.4:
+            # Player is low on health and has healing items
+            actions[action_map["heavy_attack"]]["weight"] *= 1.6
+            actions[action_map["opportunistic_strike"]]["weight"] *= 1.4
+            
+        # === PERSONALITY-SPECIFIC ADJUSTMENTS ===
+        ai_type = self.ai_personality["type"]
+        
+        if ai_type == "cunning":
+            # Cunning enemies prefer status effects and opportunistic strikes
+            actions[action_map["status_focus"]]["weight"] *= 1.5
+            actions[action_map["opportunistic_strike"]]["weight"] *= 1.3
+            
+        elif ai_type == "defensive":
+            # Defensive enemies prefer safe strategies
+            actions[action_map["defensive_stance"]]["weight"] *= 1.8
+            actions[action_map["tactical_retreat"]]["weight"] *= 1.4
+            actions[action_map["desperate_attack"]]["weight"] *= 0.3
+            
+        elif ai_type == "aggressive":
+            # Aggressive enemies prefer direct attacks
+            actions[action_map["heavy_attack"]]["weight"] *= 1.6
+            actions[action_map["normal_attack"]]["weight"] *= 1.2
+            actions[action_map["tactical_retreat"]]["weight"] *= 0.4
+            
+        elif ai_type == "berserker":
+            # Berserkers become more dangerous when hurt
+            damage_bonus = 1.0 + (1.0 - my_health_ratio) * 0.8
+            actions[action_map["desperate_attack"]]["weight"] *= damage_bonus
+            actions[action_map["heavy_attack"]]["weight"] *= damage_bonus * 0.8
+            actions[action_map["defensive_stance"]]["weight"] *= 0.2
+            
+        # === ZERO OUT NEGATIVE WEIGHTS ===
+        for action in actions:
+            if action["weight"] < 0:
+                action["weight"] = 0
             
     def execute_action(self, player, action):
         """
@@ -297,13 +447,55 @@ class Enemy:
         defense = player.get_defense()
         final_damage = max(1, final_damage - defense)
         
-        # Execute action with flavor text
-        if action["type"] == "normal_attack":
+        # Execute different action types with enhanced flavor text
+        action_type = action["type"]
+        
+        if action_type == "normal_attack":
             colored_print(f"⚔️ {self.name} 发动普通攻击！", Colors.RED)
-        elif action["type"] == "heavy_attack":
+            
+        elif action_type == "heavy_attack":
             colored_print(f"💥 {self.name} 发动重击！({self.ai_personality['name']})", Colors.RED + Colors.BOLD)
-        elif action["type"] == "defensive_stance":
+            
+        elif action_type == "defensive_stance":
             colored_print(f"🛡️ {self.name} 采取防御姿态！", Colors.YELLOW)
+            # Defensive stance may also heal slightly
+            if self.health < self.max_health:
+                heal_amount = min(5, self.max_health - self.health)
+                self.health += heal_amount
+                colored_print(f"   🩹 {self.name} 恢复了 {heal_amount} 点生命值", Colors.GREEN)
+                
+        elif action_type == "desperate_attack":
+            colored_print(f"💀 {self.name} 发动拼命攻击！", Colors.RED + Colors.BOLD)
+            # Desperate attack may hurt self slightly
+            self_damage = random.randint(1, 3)
+            self.health -= self_damage
+            colored_print(f"   💔 {self.name} 因拼命攻击受到 {self_damage} 点反伤", Colors.RED)
+            
+        elif action_type == "tactical_retreat":
+            colored_print(f"🏃 {self.name} 采取战术后撤！", Colors.CYAN)
+            # Tactical retreat may avoid some damage but deals less
+            if random.random() < 0.3:
+                final_damage = 0
+                colored_print(f"   🌪️ {self.name} 完全避开了反击！", Colors.CYAN)
+                
+        elif action_type == "status_focus":
+            colored_print(f"🔮 {self.name} 专注于施加状态效果！", Colors.MAGENTA)
+            # Status focus has chance to apply burn or poison
+            if random.random() < 0.4:
+                effect = random.choice(["burn", "poison"])
+                if hasattr(player, 'apply_status_effect'):
+                    player.apply_status_effect(effect, 2)
+                    colored_print(f"   ✨ {self.name} 对你施加了状态效果！", Colors.MAGENTA)
+                    
+        elif action_type == "opportunistic_strike":
+            colored_print(f"🎯 {self.name} 发动机会攻击！", Colors.YELLOW + Colors.BOLD)
+            # Opportunistic strike has higher crit chance
+            if random.random() < 0.3:
+                final_damage = int(final_damage * 1.5)
+                colored_print(f"   💥 暴击！额外伤害！", Colors.YELLOW)
+                
+        else:
+            colored_print(f"⚔️ {self.name} 发动攻击！", Colors.RED)
             
         return final_damage
         
