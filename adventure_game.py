@@ -547,7 +547,19 @@ class Player:
             'status_effects': self.status_effects,
             'pets': [{"name": pet.name, "type": pet.pet_type, "level": pet.level, 
                      "exp": pet.exp, "loyalty": pet.loyalty} for pet in self.pets],
-            'active_pet_index': self.pets.index(self.active_pet) if self.active_pet else -1
+            'active_pet_index': self.pets.index(self.active_pet) if self.active_pet else -1,
+            'house': {
+                'house_type': self.house.house_type if hasattr(self, 'house') and self.house else None,
+                'name': self.house.name if hasattr(self, 'house') and self.house else None,
+                'price': self.house.price if hasattr(self, 'house') and self.house else None,
+                'rooms': self.house.rooms if hasattr(self, 'house') and self.house else None,
+                'owned': self.house.owned if hasattr(self, 'house') and self.house else False,
+                'furnishings': {k: {'name': v.name, 'item_type': v.item_type, 'price': v.price, 
+                               'comfort_bonus': v.comfort_bonus, 'description': v.description} 
+                               for k, v in self.house.furnishings.items()} if hasattr(self, 'house') and self.house else {},
+                'upgrades': self.house.upgrades if hasattr(self, 'house') and self.house else [],
+                'comfort_level': self.house.comfort_level if hasattr(self, 'house') and self.house else 1
+            }
         }
         
         save_file = f"savegame_{slot}.json"
@@ -623,6 +635,30 @@ class Player:
             active_pet_index = save_data.get('active_pet_index', -1)
             if active_pet_index >= 0 and active_pet_index < len(player.pets):
                 player.active_pet = player.pets[active_pet_index]
+            
+            # 加载房屋数据
+            house_data = save_data.get('house', {})
+            if house_data.get('owned', False) and house_data.get('house_type'):
+                player.house = House(
+                    house_data['house_type'],
+                    house_data['name'],
+                    house_data['price'],
+                    house_data['rooms']
+                )
+                player.house.owned = house_data['owned']
+                player.house.comfort_level = house_data.get('comfort_level', 1)
+                player.house.upgrades = house_data.get('upgrades', [])
+                
+                # 恢复家具数据
+                furnishings_data = house_data.get('furnishings', {})
+                for furn_id, furn_data in furnishings_data.items():
+                    player.house.furnishings[furn_id] = Furnishing(
+                        furn_data['name'],
+                        furn_data['item_type'],
+                        furn_data['price'],
+                        furn_data['comfort_bonus'],
+                        furn_data['description']
+                    )
             
             player.current_save_slot = slot  # 设置当前存档槽位
             
@@ -1150,6 +1186,264 @@ class Tavern:
                     break
                 else:
                     colored_print("❌ 无效选择", Colors.RED)
+            except ValueError:
+                colored_print("❌ 请输入数字", Colors.RED)
+
+class House:
+    def __init__(self, house_type, name, price, rooms=None):
+        self.house_type = house_type
+        self.name = name
+        self.price = price
+        self.rooms = rooms or []
+        self.owned = False
+        self.furnishings = {}
+        self.upgrades = []
+        self.comfort_level = 1
+        self.rent_days_left = 0
+        
+    def get_description(self):
+        descriptions = {
+            "cottage": "🏠 一个温馨的小屋，适合初次置业",
+            "house": "🏘️ 一栋舒适的房屋，有多个房间",
+            "mansion": "🏰 豪华的大宅，彰显身份地位"
+        }
+        return descriptions.get(self.house_type, "一处房产")
+    
+    def calculate_daily_comfort(self):
+        base_comfort = self.comfort_level * 10
+        furnishing_bonus = len(self.furnishings) * 5
+        upgrade_bonus = len(self.upgrades) * 15
+        return base_comfort + furnishing_bonus + upgrade_bonus
+
+class Furnishing:
+    def __init__(self, name, item_type, price, comfort_bonus=0, description=""):
+        self.name = name
+        self.item_type = item_type
+        self.price = price
+        self.comfort_bonus = comfort_bonus
+        self.description = description
+
+class HouseBroker:
+    def __init__(self):
+        self.available_houses = {
+            "cottage_1": House("cottage", "🏠 温馨小屋", 1000, ["客厅", "卧室"]),
+            "cottage_2": House("cottage", "🏠 森林小屋", 1200, ["客厅", "卧室", "厨房"]),
+            "house_1": House("house", "🏘️ 市郊别墅", 3000, ["客厅", "卧室", "厨房", "书房"]),
+            "house_2": House("house", "🏘️ 花园洋房", 4000, ["客厅", "卧室", "厨房", "书房", "花园"]),
+            "mansion_1": House("mansion", "🏰 贵族庄园", 10000, ["大厅", "主卧", "客卧", "厨房", "书房", "花园", "酒窖"])
+        }
+        
+        self.furnishings = {
+            "bed": Furnishing("🛏️ 舒适床铺", "bedroom", 200, 10, "提高休息质量"),
+            "sofa": Furnishing("🛋️ 沙发", "living", 300, 8, "客厅必备家具"),
+            "dining_table": Furnishing("🍽️ 餐桌", "dining", 250, 6, "用餐的好地方"),
+            "bookshelf": Furnishing("📚 书架", "study", 400, 12, "存放书籍，提升智慧"),
+            "fireplace": Furnishing("🔥 壁炉", "living", 600, 15, "温暖舒适的象征"),
+            "garden_set": Furnishing("🌸 花园套装", "garden", 500, 20, "美丽的花园装饰"),
+            "kitchen_set": Furnishing("🍳 厨房套装", "kitchen", 450, 10, "完整的厨房设备")
+        }
+        
+        self.upgrades = {
+            "security": {"name": "🔒 安全系统", "price": 800, "description": "提高房屋安全性"},
+            "heating": {"name": "🔥 供暖系统", "price": 1000, "description": "冬天也很温暖"},
+            "garden": {"name": "🌺 扩建花园", "price": 1500, "description": "扩大花园面积"},
+            "storage": {"name": "📦 储物空间", "price": 600, "description": "增加储物能力"}
+        }
+    
+    def show_available_houses(self, player):
+        colored_print("\n🏠 === 可购买房屋 ===", Colors.BOLD + Colors.CYAN)
+        
+        available_count = 0
+        for house_id, house in self.available_houses.items():
+            if not house.owned:
+                available_count += 1
+                print(f"\n{available_count}. {house.name}")
+                print(f"   💰 价格: {house.price} 金币")
+                print(f"   📝 {house.get_description()}")
+                print(f"   🏠 房间: {', '.join(house.rooms)}")
+        
+        if available_count == 0:
+            colored_print("📍 目前没有可购买的房屋", Colors.YELLOW)
+            return False
+        
+        return True
+    
+    def buy_house(self, player, house_choice):
+        available_houses = [house for house in self.available_houses.values() if not house.owned]
+        
+        if 1 <= house_choice <= len(available_houses):
+            house = available_houses[house_choice - 1]
+            
+            if player.gold >= house.price:
+                player.gold -= house.price
+                house.owned = True
+                player.house = house
+                
+                colored_print(f"🎉 恭喜！你成功购买了 {house.name}！", Colors.GREEN)
+                colored_print(f"💰 花费了 {house.price} 金币", Colors.YELLOW)
+                
+                player.add_achievement("homeowner", "🏠 房屋主人", "购买了第一套房产")
+                return True
+            else:
+                colored_print(f"❌ 金币不足！需要 {house.price} 金币，你只有 {player.gold} 金币", Colors.RED)
+        else:
+            colored_print("❌ 无效选择", Colors.RED)
+        
+        return False
+    
+    def show_furnishings(self, player):
+        if not hasattr(player, 'house') or not player.house:
+            colored_print("❌ 你还没有房屋！", Colors.RED)
+            return False
+        
+        colored_print("\n🛋️ === 可购买家具 ===", Colors.BOLD + Colors.CYAN)
+        
+        count = 0
+        for furn_id, furn in self.furnishings.items():
+            if furn_id not in player.house.furnishings:
+                count += 1
+                print(f"\n{count}. {furn.name}")
+                print(f"   💰 价格: {furn.price} 金币")
+                print(f"   🎯 舒适度: +{furn.comfort_bonus}")
+                print(f"   📝 {furn.description}")
+        
+        if count == 0:
+            colored_print("📍 所有家具都已购买！", Colors.GREEN)
+            return False
+        
+        return True
+    
+    def buy_furnishing(self, player, furn_choice):
+        if not hasattr(player, 'house') or not player.house:
+            colored_print("❌ 你还没有房屋！", Colors.RED)
+            return False
+        
+        available_furn = [(fid, f) for fid, f in self.furnishings.items() 
+                         if fid not in player.house.furnishings]
+        
+        if 1 <= furn_choice <= len(available_furn):
+            furn_id, furn = available_furn[furn_choice - 1]
+            
+            if player.gold >= furn.price:
+                player.gold -= furn.price
+                player.house.furnishings[furn_id] = furn
+                
+                colored_print(f"🎉 成功购买了 {furn.name}！", Colors.GREEN)
+                colored_print(f"💰 花费了 {furn.price} 金币", Colors.YELLOW)
+                colored_print(f"🎯 房屋舒适度提升了 {furn.comfort_bonus} 点！", Colors.CYAN)
+                
+                return True
+            else:
+                colored_print(f"❌ 金币不足！需要 {furn.price} 金币", Colors.RED)
+        else:
+            colored_print("❌ 无效选择", Colors.RED)
+        
+        return False
+    
+    def show_house_status(self, player):
+        if not hasattr(player, 'house') or not player.house:
+            colored_print("❌ 你还没有房屋！", Colors.RED)
+            return
+        
+        house = player.house
+        colored_print(f"\n🏠 === {house.name} ===", Colors.BOLD + Colors.CYAN)
+        print(f"🏠 房屋类型: {house.get_description()}")
+        print(f"🏠 房间数量: {len(house.rooms)}")
+        print(f"🎯 舒适度等级: {house.comfort_level}")
+        print(f"💫 每日舒适度加成: +{house.calculate_daily_comfort()}")
+        
+        if house.furnishings:
+            print(f"\n🛋️ 已有家具 ({len(house.furnishings)}):")
+            for furn in house.furnishings.values():
+                print(f"   {furn.name} - 舒适度 +{furn.comfort_bonus}")
+        else:
+            print("\n🛋️ 家具: 无")
+        
+        if house.upgrades:
+            print(f"\n⬆️ 升级项目 ({len(house.upgrades)}):")
+            for upgrade in house.upgrades:
+                print(f"   {upgrade}")
+        else:
+            print("\n⬆️ 升级项目: 无")
+    
+    def rest_at_home(self, player):
+        if not hasattr(player, 'house') or not player.house:
+            colored_print("❌ 你还没有房屋！", Colors.RED)
+            return False
+        
+        house = player.house
+        comfort_bonus = house.calculate_daily_comfort()
+        
+        health_restore = min(20 + comfort_bonus // 5, player.max_health - player.health)
+        mana_restore = min(15 + comfort_bonus // 8, player.max_mana - player.mana)
+        
+        player.health += health_restore
+        player.mana += mana_restore
+        
+        colored_print(f"😴 你在 {house.name} 中舒适地休息了一夜", Colors.GREEN)
+        colored_print(f"❤️ 恢复了 {health_restore} 生命值", Colors.GREEN)
+        colored_print(f"💙 恢复了 {mana_restore} 魔力值", Colors.BLUE)
+        
+        if comfort_bonus > 50:
+            colored_print("✨ 舒适的环境让你精神倍增！", Colors.YELLOW)
+            if player.active_pet:
+                player.active_pet.add_experience(5)
+                colored_print(f"🐾 你的宠物 {player.active_pet.name} 也很开心，获得了 5 经验值", Colors.CYAN)
+        
+        return True
+    
+    def interact(self, player):
+        while True:
+            colored_print("\n🏠 === 房屋中介 ===", Colors.BOLD + Colors.CYAN)
+            print("欢迎来到翡翠谷房屋中介！我们为您提供最优质的房产服务。")
+            
+            if hasattr(player, 'house') and player.house:
+                print(f"\n🏠 你的房产: {player.house.name}")
+                print("1. 🛋️ 购买家具")
+                print("2. 📊 查看房屋状态") 
+                print("3. 😴 在家休息")
+                print("4. 🔄 返回城镇")
+                max_choice = 4
+            else:
+                print("\n1. 🏠 购买房屋")
+                print("2. 🔄 返回城镇")
+                max_choice = 2
+            
+            try:
+                choice = int(input(f"请选择 (1-{max_choice}): "))
+                
+                if not hasattr(player, 'house') or not player.house:
+                    if choice == 1:
+                        if self.show_available_houses(player):
+                            try:
+                                house_choice = int(input("\n请选择要购买的房屋 (输入0返回): "))
+                                if house_choice == 0:
+                                    continue
+                                self.buy_house(player, house_choice)
+                            except ValueError:
+                                colored_print("❌ 请输入数字", Colors.RED)
+                    elif choice == 2:
+                        break
+                    else:
+                        colored_print("❌ 无效选择", Colors.RED)
+                else:
+                    if choice == 1:
+                        if self.show_furnishings(player):
+                            try:
+                                furn_choice = int(input("\n请选择要购买的家具 (输入0返回): "))
+                                if furn_choice == 0:
+                                    continue
+                                self.buy_furnishing(player, furn_choice)
+                            except ValueError:
+                                colored_print("❌ 请输入数字", Colors.RED)
+                    elif choice == 2:
+                        self.show_house_status(player)
+                    elif choice == 3:
+                        self.rest_at_home(player)
+                    elif choice == 4:
+                        break
+                    else:
+                        colored_print("❌ 无效选择", Colors.RED)
             except ValueError:
                 colored_print("❌ 请输入数字", Colors.RED)
 
@@ -1702,6 +1996,7 @@ def visit_town(player):
     magic_shop = MagicShop()
     pet_shop = PetShop()
     tavern = Tavern()
+    house_broker = HouseBroker()
     
     while True:
         town.show_town(player)
@@ -1717,8 +2012,7 @@ def visit_town(player):
                 pet_shop.visit(player)
             elif choice == 4:
                 # 房屋中介
-                colored_print("\n🏠 房屋中介", Colors.BOLD)
-                colored_print("💬 中介: 抱歉，目前没有房屋出售。请稍后再来！", Colors.CYAN)
+                house_broker.interact(player)
             elif choice == 5:
                 # 任务公告板
                 town.bulletin_board.show_quests(player)
