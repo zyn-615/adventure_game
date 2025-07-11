@@ -142,6 +142,10 @@ class Player:
         # 宠物系统
         self.pets = []
         self.active_pet = None
+        
+        # 战斗日志系统
+        self.battle_log = []
+        self.max_battle_logs = 5  # 保存最近5场战斗的日志
     
     def show_status(self):
         """Display complete player status including stats, equipment, quests, and pets"""
@@ -680,6 +684,412 @@ class Player:
         
         return defense
     
+    def get_detailed_stats(self):
+        """
+        获取详细的角色属性统计
+        
+        Returns:
+            dict: 包含所有详细属性的字典
+        """
+        # 基础属性
+        base_attack = random.randint(15, 25)  # 基础攻击力范围
+        base_defense = 0
+        
+        # 武器属性
+        weapon_stats = {
+            "🗡️ 木剑": {"attack": 5, "defense": 0},
+            "⚔️ 铁剑": {"attack": 15, "defense": 0},
+            "🗡️ 精钢剑": {"attack": 25, "defense": 0},
+            "🏹 长弓": {"attack": 20, "defense": 0},
+            "⚔️ 双手剑": {"attack": 30, "defense": 0},
+            "💀 死灵法杖": {"attack": 35, "defense": 5},
+            "🏔️ 巨人之锤": {"attack": 40, "defense": 10},
+            "👑 王者徽章": {"attack": 20, "defense": 12},
+            "⚔️ 传说之剑": {"attack": 45, "defense": 8}
+        }
+        
+        # 防具属性
+        armor_stats = {
+            "🛡️ 盾牌": {"attack": 0, "defense": 8},
+            "🛡️ 铁甲": {"attack": 0, "defense": 15},
+            "🐉 龙鳞护甲": {"attack": 10, "defense": 25}
+        }
+        
+        # 计算装备加成
+        weapon_bonus = {"attack": 0, "defense": 0}
+        armor_bonus = {"attack": 0, "defense": 0}
+        
+        current_weapon = self.equipment.get("weapon")
+        current_armor = self.equipment.get("armor")
+        
+        if current_weapon and current_weapon in weapon_stats:
+            weapon_bonus = weapon_stats[current_weapon]
+        
+        if current_armor and current_armor in armor_stats:
+            armor_bonus = armor_stats[current_armor]
+        
+        # 宠物加成
+        pet_bonus = {"attack": 0, "defense": 0, "crit": 0, "dodge": 0}
+        if self.active_pet and self.active_pet.loyalty > 50:
+            pet_abilities = self.active_pet.abilities
+            pet_bonus["attack"] = pet_abilities.get("attack_boost", 0)
+            pet_bonus["defense"] = pet_abilities.get("defense_boost", 0)
+            pet_bonus["crit"] = pet_abilities.get("crit_boost", 0) * 100  # 转为百分比
+            pet_bonus["dodge"] = pet_abilities.get("dodge_boost", 0) * 100  # 转为百分比
+        
+        # 状态效果加成
+        status_bonus = {"attack": 0, "defense": 0}
+        if self.status_effects["shield"]["duration"] > 0:
+            status_bonus["defense"] = self.status_effects["shield"]["defense"]
+        
+        # 计算总属性
+        total_attack_min = base_attack + weapon_bonus["attack"] + armor_bonus["attack"] + pet_bonus["attack"]
+        total_attack_max = 25 + weapon_bonus["attack"] + armor_bonus["attack"] + pet_bonus["attack"]
+        total_defense = base_defense + weapon_bonus["defense"] + armor_bonus["defense"] + pet_bonus["defense"] + status_bonus["defense"]
+        
+        # 计算暴击率和闪避率
+        base_crit = 15.0  # 基础暴击率15%
+        base_dodge = 10.0  # 基础闪避率10%
+        
+        total_crit = base_crit + pet_bonus["crit"]
+        total_dodge = base_dodge + pet_bonus["dodge"]
+        
+        return {
+            "attack": {
+                "base": f"{base_attack}-25",
+                "weapon": weapon_bonus["attack"],
+                "armor": armor_bonus["attack"],
+                "pet": pet_bonus["attack"],
+                "total": f"{total_attack_min}-{total_attack_max}"
+            },
+            "defense": {
+                "base": base_defense,
+                "weapon": weapon_bonus["defense"],
+                "armor": armor_bonus["defense"],
+                "pet": pet_bonus["defense"],
+                "status": status_bonus["defense"],
+                "total": total_defense
+            },
+            "rates": {
+                "crit": f"{total_crit:.1f}%",
+                "dodge": f"{total_dodge:.1f}%"
+            },
+            "equipment": {
+                "weapon": current_weapon or "无",
+                "armor": current_armor or "无"
+            }
+        }
+    
+    def show_detailed_stats(self):
+        """显示详细的属性面板"""
+        stats = self.get_detailed_stats()
+        
+        colored_print(f"\n📊 === {self.name} 详细属性 ===", Colors.BOLD + Colors.CYAN)
+        
+        # 基础信息
+        colored_print("🎯 基础信息:", Colors.YELLOW)
+        print(f"   等级: {self.level} | 经验: {self.exp}/100")
+        print(f"   生命值: {self.health}/100")
+        print(f"   法力值: {self.mana}/{self.max_mana}")
+        print(f"   金币: {self.gold}")
+        
+        # 战斗属性
+        colored_print("\n⚔️ 战斗属性:", Colors.RED)
+        print(f"   攻击力: {stats['attack']['total']}")
+        print(f"     基础: {stats['attack']['base']}")
+        if stats['attack']['weapon'] > 0:
+            print(f"     武器: +{stats['attack']['weapon']}")
+        if stats['attack']['armor'] > 0:
+            print(f"     防具: +{stats['attack']['armor']}")
+        if stats['attack']['pet'] > 0:
+            print(f"     宠物: +{stats['attack']['pet']}")
+        
+        print(f"   防御力: {stats['defense']['total']}")
+        if stats['defense']['weapon'] > 0:
+            print(f"     武器: +{stats['defense']['weapon']}")
+        if stats['defense']['armor'] > 0:
+            print(f"     防具: +{stats['defense']['armor']}")
+        if stats['defense']['pet'] > 0:
+            print(f"     宠物: +{stats['defense']['pet']}")
+        if stats['defense']['status'] > 0:
+            print(f"     状态: +{stats['defense']['status']}")
+        
+        # 特殊属性
+        colored_print("\n🎲 特殊属性:", Colors.MAGENTA)
+        print(f"   暴击率: {stats['rates']['crit']}")
+        print(f"   闪避率: {stats['rates']['dodge']}")
+        
+        # 装备信息
+        colored_print("\n🎒 当前装备:", Colors.BLUE)
+        print(f"   武器: {stats['equipment']['weapon']}")
+        print(f"   防具: {stats['equipment']['armor']}")
+        
+        # 宠物信息
+        if self.active_pet:
+            colored_print("\n🐾 活跃宠物:", Colors.GREEN)
+            print(f"   名称: {self.active_pet.get_display_name()}")
+            print(f"   等级: {self.active_pet.level}")
+            print(f"   忠诚度: {self.active_pet.loyalty}/100")
+            print(f"   经验: {self.active_pet.exp}/100")
+        
+        # 状态效果
+        active_effects = [name for name, data in self.status_effects.items() if data["duration"] > 0]
+        if active_effects:
+            colored_print("\n🌟 当前状态效果:", Colors.YELLOW)
+            for effect in active_effects:
+                duration = self.status_effects[effect]["duration"]
+                effect_name = self.get_effect_display_name(effect)
+                print(f"   {effect_name} (剩余{duration}回合)")
+    
+    def compare_equipment(self, new_item):
+        """
+        比较新装备与当前装备的属性差异
+        
+        Args:
+            new_item (str): 要比较的新装备名称
+            
+        Returns:
+            dict: 装备比较结果
+        """
+        # 获取当前属性
+        current_stats = self.get_detailed_stats()
+        
+        # 创建临时玩家状态来计算新装备属性
+        temp_equipment = self.equipment.copy()
+        
+        # 确定装备类型
+        weapon_items = ["🗡️ 木剑", "⚔️ 铁剑", "🗡️ 精钢剑", "🏹 长弓", "⚔️ 双手剑", 
+                       "💀 死灵法杖", "🏔️ 巨人之锤", "👑 王者徽章", "⚔️ 传说之剑"]
+        armor_items = ["🛡️ 盾牌", "🛡️ 铁甲", "🐉 龙鳞护甲"]
+        
+        equipment_type = None
+        old_item = None
+        
+        if new_item in weapon_items:
+            equipment_type = "weapon"
+            old_item = temp_equipment.get("weapon")
+            temp_equipment["weapon"] = new_item
+        elif new_item in armor_items:
+            equipment_type = "armor"
+            old_item = temp_equipment.get("armor")
+            temp_equipment["armor"] = new_item
+        else:
+            return {"error": "无法识别的装备类型"}
+        
+        # 计算新装备的属性（临时修改装备）
+        original_equipment = self.equipment.copy()
+        self.equipment = temp_equipment
+        new_stats = self.get_detailed_stats()
+        self.equipment = original_equipment  # 恢复原装备
+        
+        # 计算属性差异
+        def parse_attack_range(attack_str):
+            """解析攻击力范围字符串，返回最小值"""
+            if "-" in attack_str:
+                return int(attack_str.split("-")[0])
+            return int(attack_str)
+        
+        old_attack = parse_attack_range(current_stats["attack"]["total"])
+        new_attack = parse_attack_range(new_stats["attack"]["total"])
+        
+        attack_diff = new_attack - old_attack
+        defense_diff = new_stats["defense"]["total"] - current_stats["defense"]["total"]
+        
+        return {
+            "equipment_type": equipment_type,
+            "old_item": old_item or "无",
+            "new_item": new_item,
+            "changes": {
+                "attack": attack_diff,
+                "defense": defense_diff
+            },
+            "old_stats": current_stats,
+            "new_stats": new_stats
+        }
+    
+    def show_equipment_comparison(self, new_item):
+        """显示装备比较界面"""
+        comparison = self.compare_equipment(new_item)
+        
+        if "error" in comparison:
+            colored_print(f"❌ {comparison['error']}", Colors.RED)
+            return False
+        
+        colored_print(f"\n🔍 === 装备比较 ===", Colors.BOLD + Colors.CYAN)
+        
+        # 显示装备变更
+        equipment_type_name = "武器" if comparison["equipment_type"] == "weapon" else "防具"
+        colored_print(f"🎯 {equipment_type_name}更换:", Colors.YELLOW)
+        print(f"   当前: {comparison['old_item']}")
+        print(f"   新装备: {comparison['new_item']}")
+        
+        # 显示属性变化
+        colored_print("\n📈 属性变化:", Colors.BLUE)
+        
+        # 攻击力变化
+        attack_change = comparison["changes"]["attack"]
+        if attack_change > 0:
+            colored_print(f"   ⚔️ 攻击力: +{attack_change} ↗️", Colors.GREEN)
+        elif attack_change < 0:
+            colored_print(f"   ⚔️ 攻击力: {attack_change} ↘️", Colors.RED)
+        else:
+            colored_print(f"   ⚔️ 攻击力: 无变化", Colors.YELLOW)
+        
+        # 防御力变化
+        defense_change = comparison["changes"]["defense"]
+        if defense_change > 0:
+            colored_print(f"   🛡️ 防御力: +{defense_change} ↗️", Colors.GREEN)
+        elif defense_change < 0:
+            colored_print(f"   🛡️ 防御力: {defense_change} ↘️", Colors.RED)
+        else:
+            colored_print(f"   🛡️ 防御力: 无变化", Colors.YELLOW)
+        
+        # 显示详细对比
+        colored_print("\n📋 详细对比:", Colors.MAGENTA)
+        print(f"   攻击力: {comparison['old_stats']['attack']['total']} → {comparison['new_stats']['attack']['total']}")
+        print(f"   防御力: {comparison['old_stats']['defense']['total']} → {comparison['new_stats']['defense']['total']}")
+        
+        # 装备建议
+        total_improvement = attack_change + defense_change
+        if total_improvement > 0:
+            colored_print("💡 建议: 这是一个属性提升，建议装备！", Colors.GREEN)
+        elif total_improvement < 0:
+            colored_print("💡 建议: 这会降低属性，请谨慎考虑。", Colors.RED)
+        else:
+            colored_print("💡 建议: 属性没有明显变化。", Colors.YELLOW)
+        
+        return True
+    
+    def add_battle_log(self, battle_data):
+        """
+        添加战斗日志记录
+        
+        Args:
+            battle_data (dict): 战斗数据
+        """
+        import datetime
+        
+        # 创建战斗日志条目
+        log_entry = {
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "location": battle_data.get("location", "未知区域"),
+            "enemy": battle_data.get("enemy", "未知敌人"),
+            "result": battle_data.get("result", "未知"),  # victory, defeat, flee
+            "duration": battle_data.get("duration", 0),  # 战斗回合数
+            "damage_dealt": battle_data.get("damage_dealt", 0),
+            "damage_taken": battle_data.get("damage_taken", 0),
+            "skills_used": battle_data.get("skills_used", []),
+            "rewards": battle_data.get("rewards", {}),
+            "player_level": self.level,
+            "player_health_start": battle_data.get("player_health_start", 100),
+            "player_health_end": self.health
+        }
+        
+        # 添加到日志列表
+        self.battle_log.append(log_entry)
+        
+        # 保持最大日志数量限制
+        if len(self.battle_log) > self.max_battle_logs:
+            self.battle_log.pop(0)  # 移除最旧的日志
+    
+    def show_battle_log(self):
+        """显示战斗日志"""
+        colored_print("\n📜 === 战斗日志 ===", Colors.BOLD + Colors.CYAN)
+        
+        if not self.battle_log:
+            colored_print("📝 还没有战斗记录", Colors.YELLOW)
+            return
+        
+        print(f"📊 显示最近 {len(self.battle_log)} 场战斗记录:\n")
+        
+        for i, log in enumerate(reversed(self.battle_log), 1):
+            # 战斗结果图标
+            result_icons = {
+                "victory": "🏆 胜利",
+                "defeat": "💀 失败", 
+                "flee": "🏃 逃跑"
+            }
+            result_icon = result_icons.get(log["result"], "❓ 未知")
+            
+            # 显示战斗摘要
+            colored_print(f"📖 战斗 #{i} - {result_icon}", Colors.BOLD)
+            print(f"   🕐 时间: {log['timestamp']}")
+            print(f"   📍 地点: {log['location']}")
+            print(f"   👹 敌人: {log['enemy']}")
+            print(f"   ⏱️  持续: {log['duration']} 回合")
+            print(f"   ⚔️ 造成伤害: {log['damage_dealt']}")
+            print(f"   💔 受到伤害: {log['damage_taken']}")
+            
+            # 显示使用的技能
+            if log['skills_used']:
+                skills_text = ", ".join(log['skills_used'])
+                print(f"   🔮 使用技能: {skills_text}")
+            
+            # 显示奖励
+            if log['rewards'] and log['result'] == 'victory':
+                rewards_text = []
+                if log['rewards'].get('gold', 0) > 0:
+                    rewards_text.append(f"{log['rewards']['gold']}金币")
+                if log['rewards'].get('exp', 0) > 0:
+                    rewards_text.append(f"{log['rewards']['exp']}经验")
+                if rewards_text:
+                    print(f"   🎁 奖励: {', '.join(rewards_text)}")
+            
+            # 显示生命值变化
+            health_change = log['player_health_end'] - log['player_health_start']
+            if health_change < 0:
+                print(f"   ❤️ 生命值: {log['player_health_start']} → {log['player_health_end']} ({health_change})")
+            elif health_change > 0:
+                print(f"   ❤️ 生命值: {log['player_health_start']} → {log['player_health_end']} (+{health_change})")
+            else:
+                print(f"   ❤️ 生命值: {log['player_health_start']} (无变化)")
+            
+            print()  # 空行分隔
+        
+        # 显示统计数据
+        self._show_battle_statistics()
+    
+    def _show_battle_statistics(self):
+        """显示战斗统计数据"""
+        if not self.battle_log:
+            return
+        
+        colored_print("📈 === 战斗统计 ===", Colors.BOLD + Colors.BLUE)
+        
+        # 计算统计数据
+        total_battles = len(self.battle_log)
+        victories = sum(1 for log in self.battle_log if log['result'] == 'victory')
+        defeats = sum(1 for log in self.battle_log if log['result'] == 'defeat')
+        flees = sum(1 for log in self.battle_log if log['result'] == 'flee')
+        
+        total_damage_dealt = sum(log['damage_dealt'] for log in self.battle_log)
+        total_damage_taken = sum(log['damage_taken'] for log in self.battle_log)
+        total_rounds = sum(log['duration'] for log in self.battle_log)
+        
+        # 计算胜率
+        win_rate = (victories / total_battles * 100) if total_battles > 0 else 0
+        
+        print(f"🎯 总战斗数: {total_battles}")
+        print(f"🏆 胜利: {victories} | 💀 失败: {defeats} | 🏃 逃跑: {flees}")
+        print(f"📊 胜率: {win_rate:.1f}%")
+        print(f"⚔️ 总伤害输出: {total_damage_dealt}")
+        print(f"💔 总承受伤害: {total_damage_taken}")
+        if total_battles > 0:
+            print(f"📈 平均每场战斗:")
+            print(f"   伤害输出: {total_damage_dealt // total_battles}")
+            print(f"   承受伤害: {total_damage_taken // total_battles}")
+            print(f"   持续回合: {total_rounds / total_battles:.1f}")
+        
+        # 最常战斗的地点
+        locations = {}
+        for log in self.battle_log:
+            location = log['location']
+            locations[location] = locations.get(location, 0) + 1
+        
+        if locations:
+            most_common_location = max(locations, key=locations.get)
+            print(f"🗺️ 最常战斗地点: {most_common_location} ({locations[most_common_location]}次)")
+    
     def try_dodge(self):
         """
         Attempt to dodge an attack, including pet bonuses
@@ -943,6 +1353,7 @@ class Player:
             'achievements': self.achievements,
             'stats': self.stats,
             'status_effects': self.status_effects,
+            'battle_log': self.battle_log,  # 保存战斗日志
             'pets': [{"name": pet.name, "type": pet.pet_type, "level": pet.level, 
                      "exp": pet.exp, "loyalty": pet.loyalty} for pet in self.pets],
             'active_pet_index': self.pets.index(self.active_pet) if self.active_pet else -1,
@@ -1029,6 +1440,7 @@ class Player:
             player.achievements = save_data.get('achievements', player.achievements)
             player.stats = save_data.get('stats', player.stats)
             player.status_effects = save_data.get('status_effects', player.status_effects)
+            player.battle_log = save_data.get('battle_log', [])  # 加载战斗日志
             
             # 加载宠物数据
             pets_data = save_data.get('pets', [])

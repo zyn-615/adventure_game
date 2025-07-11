@@ -926,11 +926,13 @@ def main():
         print("19. 🎒 管理装备")
         print("20. 🐾 宠物管理")
         print("21. 🏆 查看成就")
-        print("22. 💾 保存游戏")
-        print("23. 🚪 退出游戏")
+        print("22. 📜 战斗日志")
+        print("23. 📈 详细属性")
+        print("24. 💾 保存游戏")
+        print("25. 🚪 退出游戏")
         
         try:
-            choice = int(input("\n请选择 (1-23): "))
+            choice = int(input("\n请选择 (1-25): "))
             
             if choice in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]:
                 location_name, enemies = locations[choice-1]
@@ -958,7 +960,7 @@ def main():
                 
                 if random.random() < 0.8:  # 80% 概率遇到敌人
                     enemy_name, enemy_health, enemy_attack = random.choice(enemies)
-                    result = combat_system.start_battle(player, enemy_name, enemy_health, enemy_attack)
+                    result = combat_system.start_battle(player, enemy_name, enemy_health, enemy_attack, location_name)
                     
                     if result == "game_over":
                         print("\n💀 游戏结束！")
@@ -1061,16 +1063,52 @@ def main():
                     print("\n🎒 可装备物品:")
                     for i, item in enumerate(equip_items):
                         print(f"{i+1}. {item}")
+                    print("0. 返回")
+                    print("C. 装备比较模式")
+                    
                     try:
-                        equip_choice = int(input("选择装备 (0-返回): "))
-                        if 1 <= equip_choice <= len(equip_items):
-                            player.equip_item(equip_items[equip_choice-1])
-                        elif equip_choice == 0:
+                        choice_input = input("选择装备 (数字/C): ").strip()
+                        
+                        if choice_input.upper() == 'C':
+                            # 装备比较模式
+                            print("\n🔍 装备比较模式 - 选择要比较的装备:")
+                            for i, item in enumerate(equip_items):
+                                print(f"{i+1}. {item}")
+                            try:
+                                compare_choice = int(input("选择要比较的装备 (0-返回): "))
+                                if 1 <= compare_choice <= len(equip_items):
+                                    selected_item = equip_items[compare_choice-1]
+                                    player.show_equipment_comparison(selected_item)
+                                    
+                                    # 询问是否装备
+                                    confirm = input("\n是否装备这件装备？(y/n): ").lower()
+                                    if confirm == 'y':
+                                        player.equip_item(selected_item)
+                                elif compare_choice == 0:
+                                    pass
+                                else:
+                                    print("❌ 无效选择")
+                            except ValueError:
+                                print("❌ 请输入数字")
+                        
+                        elif choice_input == '0':
                             pass
                         else:
-                            print("❌ 无效选择")
+                            equip_choice = int(choice_input)
+                            if 1 <= equip_choice <= len(equip_items):
+                                selected_item = equip_items[equip_choice-1]
+                                # 显示装备比较
+                                player.show_equipment_comparison(selected_item)
+                                
+                                # 询问是否装备
+                                confirm = input("\n确认装备？(y/n): ").lower()
+                                if confirm == 'y':
+                                    player.equip_item(selected_item)
+                            else:
+                                print("❌ 无效选择")
+                                
                     except ValueError:
-                        print("❌ 请输入数字")
+                        print("❌ 请输入有效选项")
                 else:
                     print("❌ 没有可装备的物品")
             
@@ -1117,9 +1155,15 @@ def main():
                 player.show_achievements()
             
             elif choice == 22:
-                player.save_game()
+                player.show_battle_log()
             
             elif choice == 23:
+                player.show_detailed_stats()
+            
+            elif choice == 24:
+                player.save_game()
+            
+            elif choice == 25:
                 print("👋 感谢游玩！再见！")
                 break
             

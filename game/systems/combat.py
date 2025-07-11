@@ -45,8 +45,20 @@ class CombatSystem:
         """Initialize the combat system."""
         self.current_battle = None
         self.turn_count = 0
+        # 战斗日志数据
+        self.battle_data = {
+            "location": "",
+            "enemy": "",
+            "result": "",
+            "duration": 0,
+            "damage_dealt": 0,
+            "damage_taken": 0,
+            "skills_used": [],
+            "rewards": {},
+            "player_health_start": 100
+        }
         
-    def start_battle(self, player, enemy_name, enemy_health, enemy_attack):
+    def start_battle(self, player, enemy_name, enemy_health, enemy_attack, location="未知区域"):
         """
         Start a new battle between player and enemy.
         
@@ -55,12 +67,27 @@ class CombatSystem:
             enemy_name (str): Name of the enemy
             enemy_health (int): Enemy's health points
             enemy_attack (int): Enemy's attack damage
+            location (str): Battle location for logging
             
         Returns:
             bool or str: True if player wins, False if player flees, 
                         "game_over" if player dies
         """
         colored_print(f"\n⚔️  遭遇 {enemy_name}！", Colors.RED)
+        
+        # 初始化战斗日志数据
+        self.battle_data = {
+            "location": location,
+            "enemy": enemy_name,
+            "result": "",
+            "duration": 0,
+            "damage_dealt": 0,
+            "damage_taken": 0,
+            "skills_used": [],
+            "rewards": {},
+            "player_health_start": player.health
+        }
+        self.turn_count = 0
         
         # Create enemy instance
         enemy = Enemy(enemy_name, enemy_health, enemy_attack)
@@ -363,6 +390,38 @@ class CombatSystem:
             
             # Update quest progress
             self._update_quest_progress(player, enemy.name)
+            
+            # 记录战斗日志
+            self.battle_data.update({
+                "result": "victory",
+                "duration": self.turn_count,
+                "rewards": {"gold": reward, "exp": exp_reward}
+            })
+            player.add_battle_log(self.battle_data)
+            
+            return True
+    
+    def _handle_flee(self, player):
+        """处理逃跑结果并记录日志"""
+        self.battle_data.update({
+            "result": "flee",
+            "duration": self.turn_count
+        })
+        player.add_battle_log(self.battle_data)
+        return False
+    
+    def _record_damage_dealt(self, damage):
+        """记录造成的伤害"""
+        self.battle_data["damage_dealt"] += damage
+    
+    def _record_damage_taken(self, damage):
+        """记录承受的伤害"""
+        self.battle_data["damage_taken"] += damage
+    
+    def _record_skill_used(self, skill_name):
+        """记录使用的技能"""
+        if skill_name not in self.battle_data["skills_used"]:
+            self.battle_data["skills_used"].append(skill_name)
             
             return True
     
