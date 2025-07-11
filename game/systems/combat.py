@@ -64,6 +64,14 @@ class CombatSystem:
         
         # Create enemy instance
         enemy = Enemy(enemy_name, enemy_health, enemy_attack)
+        
+        # 显示敌人AI个性
+        colored_print(f"💭 {enemy.name} 展现出{enemy.ai_personality['name']}的特质", Colors.MAGENTA)
+        colored_print(f"   {enemy.ai_personality['description']}", Colors.CYAN)
+        
+        # 有概率显示敌人挑衅
+        if random.random() < 0.3:
+            colored_print(f"🗣️ {enemy.name}: {enemy.get_ai_taunt()}", Colors.YELLOW)
         self.current_battle = {
             "player": player,
             "enemy": enemy,
@@ -154,6 +162,10 @@ class CombatSystem:
         damage = player.get_attack_damage()
         enemy.health -= damage
         colored_print(f"⚔️ 你对 {enemy.name} 造成了 {damage} 点伤害！", Colors.YELLOW)
+        
+        # 更新敌人AI记忆
+        enemy.update_ai_memory("attack")
+        
         return None
     
     def _handle_flee_action(self):
@@ -166,71 +178,64 @@ class CombatSystem:
             return None
     
     def _handle_item_action(self, player):
-        """Handle player item usage."""
+        """Handle player item usage action."""
         if "🍞 面包" in player.inventory:
             player.health = min(100, player.health + 30)
             player.inventory.remove("🍞 面包")
-            colored_print("🍞 使用面包恢复了30点生命值！", Colors.GREEN)
+            colored_print("🍞 使用了面包，恢复30生命值！", Colors.GREEN)
         else:
-            colored_print("❌ 没有可用物品！", Colors.RED)
+            colored_print("❌ 没有可用物品", Colors.RED)
         return None
     
     def _handle_skill_action(self, player, enemy):
-        """Handle player skill usage."""
-        available_skills = [skill for skill, data in player.skills.items() 
-                           if data["level"] > 0]
-        
-        if not available_skills:
-            colored_print("❌ 没有可用技能！", Colors.RED)
+        """Handle player skill usage action."""
+        if player.mana < 8:
+            colored_print("❌ 法力不足", Colors.RED)
             return None
         
-        # Display available skills
         print("\n可用技能:")
-        for i, skill in enumerate(available_skills):
-            cost = player.skills[skill]["cost"]
-            if "damage" in player.skills[skill]:
-                damage = player.skills[skill]["damage"]
-                print(f"{i+1}. {skill} (伤害: {damage}, 消耗: {cost}法力)")
-            else:
-                print(f"{i+1}. {skill} (消耗: {cost}法力)")
+        available_skills = []
+        for skill, data in player.skills.items():
+            if data["level"] > 0 and player.mana >= data["cost"]:
+                available_skills.append((skill, data))
+        
+        if not available_skills:
+            colored_print("❌ 没有可用技能", Colors.RED)
+            return None
+        
+        for i, (skill, data) in enumerate(available_skills):
+            print(f"{i+1}. {skill} (消耗 {data['cost']} 法力)")
         
         try:
-            skill_choice = int(input("选择技能 (0-返回): "))
-            if skill_choice == 0:
+            choice = int(input("选择技能 (0-返回): "))
+            if 1 <= choice <= len(available_skills):
+                skill, data = available_skills[choice-1]
+                player.mana -= data["cost"]
+                player.stats["skills_used"] += 1
+                
+                if data["effect"] == "heal":
+                    player.health = min(100, player.health + data["heal"])
+                    colored_print(f"💚 使用了 {skill}，恢复 {data['heal']} 生命值！", Colors.GREEN)
+                else:
+                    damage = data["damage"]
+                    enemy.health -= damage
+                    colored_print(f"✨ 使用了 {skill}，对 {enemy.name} 造成 {damage} 点伤害！", Colors.CYAN)
+                    
+                    # 应用状态效果
+                    if data["effect"] != "heal" and random.random() < 0.6:
+                        enemy.apply_status_effect(data["effect"])
+                
+                # 更新敌人AI记忆
+                enemy.update_ai_memory("skill")
+                
+            elif choice == 0:
                 return self._get_player_action(player, enemy)
-            elif 1 <= skill_choice <= len(available_skills):
-                return self._execute_skill(player, enemy, available_skills[skill_choice-1])
             else:
                 colored_print("❌ 无效选择", Colors.RED)
                 return self._handle_skill_action(player, enemy)
         except ValueError:
             colored_print("❌ 请输入数字", Colors.RED)
             return self._handle_skill_action(player, enemy)
-    
-    def _execute_skill(self, player, enemy, skill_name):
-        """Execute a player skill."""
-        success, result = player.use_skill(skill_name, enemy)
-        
-        if success:
-            if isinstance(result, tuple):
-                # Skill with status effect
-                damage, effect = result
-                enemy.health -= damage
-                colored_print(f"🔮 使用 {skill_name}，对 {enemy.name} 造成 {damage} 点伤害！", 
-                            Colors.MAGENTA)
-                # Apply status effect with 60% chance
-                if random.random() < 0.6:
-                    enemy.apply_status_effect(effect, 3)
-            elif isinstance(result, int):
-                # Pure damage skill
-                enemy.health -= result
-                colored_print(f"🔮 使用 {skill_name}，对 {enemy.name} 造成 {result} 点伤害！", 
-                            Colors.MAGENTA)
-            else:
-                # Other skill effects
-                colored_print(f"🔮 使用 {skill_name}，{result}！", Colors.MAGENTA)
-        else:
-            colored_print(f"❌ {result}", Colors.RED)
         
         return None
     
@@ -264,12 +269,18 @@ class CombatSystem:
         return None
     
     def _execute_enemy_attack(self, player, enemy):
-        """Execute enemy attack on player."""
+        """Execute enemy attack on player using AI decision making."""
+        # 让敌人选择行动
+        action = enemy.choose_action(player)
+        damage = enemy.execute_action(player, action)
+        
+        # 应用伤害
         if not player.try_dodge():
-            enemy_damage = max(1, random.randint(5, enemy.attack) - player.get_defense())
-            player.health -= enemy_damage
-            colored_print(f"😖 {enemy.name} 对你造成了 {enemy_damage} 点伤害！", Colors.RED)
+            player.health -= damage
+            colored_print(f"😖 对你造成了 {damage} 点伤害！", Colors.RED)
             player.track_near_death()
+        else:
+            colored_print(f"🌟 你躲避了攻击！", Colors.GREEN)
     
     def _handle_battle_end(self, player, enemy):
         """
