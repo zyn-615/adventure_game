@@ -41,7 +41,7 @@ class MagicShop:
                     if player.gold >= price:
                         player.gold -= price
                         if item == "🧪 法力药水":
-                            player.mana = min(50, player.mana + 25)
+                            player.mana = min(player.max_mana, player.mana + 25)
                             colored_print(f"✅ 使用了 {item}，恢复25法力值！", Colors.GREEN)
                         elif item == "💚 治疗药水":
                             player.health = min(100, player.health + 50)

@@ -70,7 +70,8 @@ class Player:
             "💚 治疗术": {"level": 1, "cost": 6, "heal": 30, "effect": "heal"},
             "🛡️ 护盾术": {"level": 0, "cost": 10, "effect": "shield"}
         }
-        self.mana = 50
+        self.mana = 100
+        self.max_mana = 100
         self.equipment = {
             "weapon": "🗡️ 木剑",
             "armor": None,
@@ -121,7 +122,7 @@ class Player:
         """Display complete player status including stats, equipment, quests, and pets"""
         colored_print(f"\n📊 === {self.name} 的状态 ===", Colors.BOLD)
         print(f"❤️  生命值: {health_bar(self.health, 100)}")
-        print(f"💙 法力值: {health_bar(self.mana, 50)}")
+        print(f"💙 法力值: {health_bar(self.mana, self.max_mana)}")
         colored_print(f"💰 金币: {self.gold}", Colors.YELLOW)
         colored_print(f"⭐ 等级: {self.level} (经验: {self.exp}/100)", Colors.CYAN)
         if self.current_save_slot:
@@ -618,7 +619,7 @@ class Player:
                 
             elif effect_type == "mana":
                 old_mana = self.mana
-                self.mana = min(50, self.mana + value)
+                self.mana = min(self.max_mana, self.mana + value)
                 colored_print(message, Colors.MAGENTA)
                 colored_print(f"   恢复了 {self.mana - old_mana} 法力值！", Colors.MAGENTA)
                 
@@ -627,7 +628,7 @@ class Player:
                 old_health = self.health
                 old_mana = self.mana
                 self.health = min(100, self.health + health_restore)
-                self.mana = min(50, self.mana + mana_restore)
+                self.mana = min(self.max_mana, self.mana + mana_restore)
                 colored_print(message, Colors.CYAN)
                 colored_print(f"   恢复了 {self.health - old_health} 生命值和 {self.mana - old_mana} 法力值！", Colors.CYAN)
                 
@@ -697,9 +698,23 @@ class Player:
         if self.exp >= 100:
             self.level += 1
             self.exp -= 100
+            
+            # 升级时恢复生命值，但不重置法力值
+            old_health = self.health
             self.health = min(100, self.health + 20)
-            self.mana = 50
-            print(f"🎉 恭喜升级到 {self.level} 级！生命值和法力值恢复！")
+            health_gained = self.health - old_health
+            
+            # 恢复一些法力值，但不是全满
+            old_mana = self.mana
+            self.mana = min(self.max_mana, self.mana + 25)  # 恢复25点法力
+            mana_gained = self.mana - old_mana
+            
+            print(f"🎉 恭喜升级到 {self.level} 级！")
+            if health_gained > 0:
+                print(f"❤️ 生命值恢复 {health_gained} 点！")
+            if mana_gained > 0:
+                print(f"💙 法力值恢复 {mana_gained} 点！")
+            
             self.unlock_skills()
     
     def unlock_skills(self):
@@ -803,6 +818,7 @@ class Player:
             'exp': self.exp,
             'skills': self.skills,
             'mana': self.mana,
+            'max_mana': self.max_mana,
             'equipment': self.equipment,
             'quests': self.quests,
             'achievements': self.achievements,
@@ -885,7 +901,8 @@ class Player:
             player.level = save_data['level']
             player.exp = save_data['exp']
             player.skills = save_data.get('skills', player.skills)
-            player.mana = save_data.get('mana', 50)
+            player.mana = save_data.get('mana', 100)
+            player.max_mana = save_data.get('max_mana', 100)
             player.equipment = save_data.get('equipment', player.equipment)
             player.quests = save_data.get('quests', player.quests)
             player.achievements = save_data.get('achievements', player.achievements)

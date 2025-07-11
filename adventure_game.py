@@ -218,7 +218,7 @@ class Tavern:
                         
                         elif service == "🛏️ 休息":
                             player.health = 100
-                            player.mana = 50
+                            player.mana = player.max_mana  # 恢复到最大法力值
                             # 清除负面状态效果
                             for effect in ["burn", "freeze", "stun", "poison"]:
                                 player.status_effects[effect]["duration"] = 0
@@ -692,7 +692,7 @@ def random_event(player):
         player.gain_exp(event["value"])
         colored_print(f"   ✨ 获得了 {event['value']} 经验值！", Colors.CYAN)
     elif event["type"] == "mana":
-        player.mana = min(50, player.mana + event["value"])
+        player.mana = min(player.max_mana, player.mana + event["value"])
         colored_print(f"   🔮 恢复了 {event['value']} 法力值！", Colors.MAGENTA)
     elif event["type"] == "shop_discount":
         discount_shop(player)
@@ -749,7 +749,7 @@ def handle_interactive_event(player, action):
         
         # 给予一个小奖励
         if random.random() < 0.5:
-            player.mana = min(50, player.mana + 15)
+            player.mana = min(player.max_mana, player.mana + 15)
             colored_print("   🔮 预言的力量恢复了你的法力！", Colors.MAGENTA)
     
     elif action == "luck_dice":

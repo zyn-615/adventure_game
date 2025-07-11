@@ -29,7 +29,7 @@ def shop(player):
                 player.gold -= price
                 player.stats["items_bought"] += 1  # 追踪购买的物品数量
                 if item == "🧪 法力药水":
-                    player.mana = min(50, player.mana + 25)
+                    player.mana = min(player.max_mana, player.mana + 25)
                     print(f"✅ 使用了 {item}，恢复25法力值！")
                 elif item == "💎 宝石":
                     player.inventory.append(item)
@@ -72,7 +72,7 @@ def discount_shop(player):
                 player.gold -= price
                 player.stats["items_bought"] += 1  # 追踪购买的物品数量
                 if item == "🧪 法力药水":
-                    player.mana = min(50, player.mana + 25)
+                    player.mana = min(player.max_mana, player.mana + 25)
                     print(f"✅ 使用了 {item}，恢复25法力值！")
                 else:
                     player.inventory.append(item)

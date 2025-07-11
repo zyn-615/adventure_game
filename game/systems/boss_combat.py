@@ -129,7 +129,7 @@ class BossCombatSystem(CombatSystem):
     
     def _display_skill_status(self, player):
         """Display player's skill status."""
-        colored_print(f"\n🔮 法力值: {player.mana}/50", Colors.MAGENTA)
+        colored_print(f"\n🔮 法力值: {player.mana}/{player.max_mana}", Colors.MAGENTA)
         colored_print("可用技能:", Colors.CYAN)
         
         for skill, data in player.skills.items():
@@ -390,7 +390,7 @@ class BossCombatSystem(CombatSystem):
         # Player status
         colored_print(f"🛡️ 你的状态:", Colors.BLUE)
         print(f"   生命值: {health_bar(player.health, 100)}")
-        print(f"   法力值: {player.mana}/50")
+        print(f"   法力值: {player.mana}/{player.max_mana}")
         print(f"   等级: {player.level}")
         
         # Boss status
