@@ -712,9 +712,9 @@ def random_event(player):
     player.check_achievements()
 
 def handle_interactive_event(player, action):
-    \"\"\"处理互动事件\"\"\"
+    """处理互动事件"""
     if action == "sword_trial":
-        colored_print("\\n⚔️ 你决定尝试拔出这把剑...", Colors.YELLOW)
+        colored_print("\n⚔️ 你决定尝试拔出这把剑...", Colors.YELLOW)
         choice = input("你要如何尝试？(1-用力拔取 / 2-轻柔尝试 / 3-放弃): ")
         
         if choice == "1":
@@ -736,7 +736,7 @@ def handle_interactive_event(player, action):
             colored_print("🚶 你明智地选择了离开。", Colors.CYAN)
     
     elif action == "crystal_oracle":
-        colored_print("\\n🔮 水晶球开始闪烁...", Colors.MAGENTA)
+        colored_print("\n🔮 水晶球开始闪烁...", Colors.MAGENTA)
         oracle_messages = [
             "未来的道路充满挑战，但胜利属于勇者！",
             "小心火山深处的危险，但宝藏就在那里等待！",
@@ -753,7 +753,7 @@ def handle_interactive_event(player, action):
             colored_print("   🔮 预言的力量恢复了你的法力！", Colors.MAGENTA)
     
     elif action == "luck_dice":
-        colored_print("\\n🎲 你投掷了幸运骰子...", Colors.YELLOW)
+        colored_print("\n🎲 你投掷了幸运骰子...", Colors.YELLOW)
         dice_roll = random.randint(1, 6)
         colored_print(f"   🎲 骰子显示: {dice_roll}！", Colors.YELLOW)
         
@@ -780,7 +780,7 @@ def handle_interactive_event(player, action):
             colored_print("😔 运气不佳...什么也没有发生。", Colors.RED)
     
     elif action == "help_animal":
-        colored_print("\\n🐾 你温柔地接近这只小动物...", Colors.GREEN)
+        colored_print("\n🐾 你温柔地接近这只小动物...", Colors.GREEN)
         choice = input("你要如何帮助它？(1-用面包喂食 / 2-用治疗术 / 3-轻抚安慰): ")
         
         helped = False
@@ -813,7 +813,7 @@ def handle_interactive_event(player, action):
             colored_print("😔 你没有合适的方式帮助它...", Colors.RED)
     
     elif action == "ancient_scroll":
-        colored_print("\\n📜 你仔细研读这份古老的卷轴...", Colors.CYAN)
+        colored_print("\n📜 你仔细研读这份古老的卷轴...", Colors.CYAN)
         scroll_types = ["skill", "map", "recipe", "lore"]
         scroll_type = random.choice(scroll_types)
         

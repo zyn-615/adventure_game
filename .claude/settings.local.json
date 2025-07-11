@@ -9,7 +9,11 @@
       "Bash(rm:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git restore:*)",
+      "Bash(chmod:*)",
+      "Bash(grep:*)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }

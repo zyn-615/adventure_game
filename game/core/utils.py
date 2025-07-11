@@ -21,8 +21,33 @@ class Colors:
     END = '\033[0m'
 
 def colored_print(text, color=Colors.WHITE):
-    """带颜色的打印函数"""
-    print(f"{color}{text}{Colors.END}")
+    """带颜色的打印函数，支持跨平台"""
+    import platform
+    import os
+    
+    # 检测是否支持颜色
+    supports_color = True
+    
+    # Windows平台检查
+    if platform.system().lower() == "windows":
+        # Windows 10以上支持ANSI
+        import sys
+        try:
+            # 尝试启用ANSI支持
+            import subprocess
+            subprocess.run([''], shell=True)
+            
+            # 检查是否在支持颜色的终端中
+            if not (hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()):
+                supports_color = False
+        except:
+            supports_color = False
+    
+    # 如果支持颜色就使用，否则只打印文本
+    if supports_color and os.getenv('NO_COLOR') is None:
+        print(f"{color}{text}{Colors.END}")
+    else:
+        print(text)
 
 def health_bar(current, maximum, length=20):
     """生成生命值条"""
