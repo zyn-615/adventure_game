@@ -1533,8 +1533,12 @@ def battle(player, enemy_name, enemy_health, enemy_attack):
     enemy = Enemy(enemy_name, enemy_health, enemy_attack)
     
     while enemy.health > 0 and player.health > 0:
-        # 处理玩家状态效果
         print(f"\n{Colors.BOLD}=== 回合开始 ==={Colors.END}")
+        
+        # 检查玩家是否被眩晕（在处理状态效果之前）
+        player_stunned = player.is_stunned()
+        
+        # 处理玩家状态效果
         player.process_status_effects()
         
         # 如果玩家死亡，结束战斗
@@ -1544,8 +1548,8 @@ def battle(player, enemy_name, enemy_health, enemy_attack):
         print(f"\n你的生命值: {health_bar(player.health, 100)}")
         print(f"{enemy.name} 生命值: {health_bar(enemy.health, enemy.max_health)}")
         
-        # 检查玩家是否被眩晕
-        if player.is_stunned():
+        # 使用之前检查的眩晕状态
+        if player_stunned:
             colored_print("⚡ 你被眩晕了，无法行动！", Colors.RED)
         else:
             action = input("\n选择行动 (1-攻击 2-逃跑 3-使用物品 4-使用技能): ")
@@ -1620,6 +1624,9 @@ def battle(player, enemy_name, enemy_health, enemy_attack):
         
         # 敌人行动
         if enemy.health > 0:
+            # 检查敌人是否被眩晕（在处理状态效果之前）
+            enemy_stunned = enemy.is_stunned()
+            
             # 处理敌人状态效果
             enemy.process_status_effects()
             
@@ -1627,8 +1634,8 @@ def battle(player, enemy_name, enemy_health, enemy_attack):
             if enemy.health <= 0:
                 break
             
-            # 检查敌人是否被眩晕
-            if enemy.is_stunned():
+            # 使用之前检查的眩晕状态
+            if enemy_stunned:
                 colored_print(f"⚡ {enemy.name} 被眩晕了，无法行动！", Colors.CYAN)
             else:
                 # 敌人攻击
