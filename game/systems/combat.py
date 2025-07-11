@@ -297,9 +297,29 @@ class CombatSystem:
             colored_print(f"💀 你被 {enemy.name} 击败了...", Colors.RED)
             return "game_over"
         else:
-            # Player victory
-            reward = random.randint(10, 30)
-            exp_reward = random.randint(20, 40)
+            # Player victory - 平衡奖励系统
+            # 基础奖励
+            base_gold = 15
+            base_exp = 25
+            
+            # 根据敌人血量调整奖励
+            health_multiplier = max(1.0, enemy.max_health / 50)
+            
+            # 根据敌人攻击力调整奖励
+            attack_multiplier = max(1.0, enemy.attack / 20)
+            
+            # 计算最终奖励
+            reward = int(base_gold * health_multiplier * attack_multiplier)
+            exp_reward = int(base_exp * health_multiplier * attack_multiplier * 0.8)
+            
+            # 添加随机变化
+            reward += random.randint(-5, 10)
+            exp_reward += random.randint(-5, 15)
+            
+            # 确保最小奖励
+            reward = max(10, reward)
+            exp_reward = max(15, exp_reward)
+            
             player.gold += reward
             player.gain_exp(exp_reward)
             player.stats["enemies_defeated"] += 1

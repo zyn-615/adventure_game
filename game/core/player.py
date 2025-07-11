@@ -64,11 +64,11 @@ class Player:
         self.level = 1
         self.exp = 0
         self.skills = {
-            "🔥 火球术": {"level": 1, "cost": 10, "damage": 30, "effect": "burn"},
-            "❄️ 冰冻术": {"level": 0, "cost": 15, "damage": 25, "effect": "freeze"},
-            "⚡ 闪电术": {"level": 0, "cost": 20, "damage": 40, "effect": "stun"},
-            "💚 治疗术": {"level": 1, "cost": 8, "heal": 25, "effect": "heal"},
-            "🛡️ 护盾术": {"level": 0, "cost": 12, "effect": "shield"}
+            "🔥 火球术": {"level": 1, "cost": 8, "damage": 35, "effect": "burn"},
+            "❄️ 冰冻术": {"level": 0, "cost": 12, "damage": 30, "effect": "freeze"},
+            "⚡ 闪电术": {"level": 0, "cost": 15, "damage": 45, "effect": "stun"},
+            "💚 治疗术": {"level": 1, "cost": 6, "heal": 30, "effect": "heal"},
+            "🛡️ 护盾术": {"level": 0, "cost": 10, "effect": "shield"}
         }
         self.mana = 50
         self.equipment = {
@@ -472,10 +472,24 @@ class Player:
         """
         base_damage = random.randint(15, 25)
         weapon_bonus = 0
-        if self.equipment["weapon"] == "⚔️ 铁剑":
-            weapon_bonus = 10
-        elif self.equipment["weapon"] == "🗡️ 精钢剑":
-            weapon_bonus = 20
+        
+        # 武器攻击力数值化
+        weapon_stats = {
+            "🗡️ 木剑": 5,
+            "⚔️ 铁剑": 15,
+            "🗡️ 精钢剑": 25,
+            "🏹 长弓": 20,
+            "⚔️ 双手剑": 30,
+            # Boss奖励武器
+            "🐉 龙鳞护甲": 10,  # 防御型装备但有攻击加成
+            "💀 死灵法杖": 35,
+            "🏔️ 巨人之锤": 40,
+            "👑 王者徽章": 20
+        }
+        
+        current_weapon = self.equipment.get("weapon")
+        if current_weapon in weapon_stats:
+            weapon_bonus = weapon_stats[current_weapon]
         
         # 添加宠物攻击加成
         pet_bonus = 0
@@ -504,14 +518,34 @@ class Player:
             int: Total defense value
         """
         defense = 0
-        if self.equipment["armor"] == "🛡️ 盾牌":
-            defense = 5
-        elif self.equipment["armor"] == "🛡️ 铁甲":
-            defense = 10
+        
+        # 防具防御力数值化
+        armor_stats = {
+            "🛡️ 盾牌": 8,
+            "🛡️ 铁甲": 15,
+            # Boss奖励防具
+            "🐉 龙鳞护甲": 25,
+            "💀 死灵法杖": 5,  # 法杖提供少量魔法防御
+            "🏔️ 巨人之锤": 10,  # 重武器提供一定防御
+            "👑 王者徽章": 12
+        }
+        
+        current_armor = self.equipment.get("armor")
+        if current_armor in armor_stats:
+            defense += armor_stats[current_armor]
+        
+        # 武器也可能提供防御（如盾牌类武器）
+        current_weapon = self.equipment.get("weapon")
+        if current_weapon in armor_stats:
+            defense += armor_stats[current_weapon]
         
         # 添加护盾效果
         if self.status_effects["shield"]["duration"] > 0:
             defense += self.status_effects["shield"]["defense"]
+        
+        # 添加宠物防御加成
+        if self.active_pet and self.active_pet.loyalty > 50:
+            defense += self.active_pet.abilities.get("defense_boost", 0)
         
         return defense
     
@@ -539,13 +573,19 @@ class Player:
             item (str): Item name to equip
         """
         if item in self.inventory:
-            if item in ["🗡️ 木剑", "⚔️ 铁剑", "🗡️ 精钢剑", "🏹 长弓", "⚔️ 双手剑"]:
+            # 武器装备
+            weapon_items = ["🗡️ 木剑", "⚔️ 铁剑", "🗡️ 精钢剑", "🏹 长弓", "⚔️ 双手剑", 
+                           "💀 死灵法杖", "🏔️ 巨人之锤", "👑 王者徽章"]
+            
+            if item in weapon_items:
                 if self.equipment["weapon"] and self.equipment["weapon"] != item:
                     self.inventory.append(self.equipment["weapon"])
                 self.equipment["weapon"] = item
                 self.inventory.remove(item)
                 print(f"✅ 装备了 {item}！")
-            elif item in ["🛡️ 盾牌", "🛡️ 铁甲"]:
+                
+            # 防具装备
+            elif item in ["🛡️ 盾牌", "🛡️ 铁甲", "🐉 龙鳞护甲"]:
                 if self.equipment["armor"] and self.equipment["armor"] != item:
                     self.inventory.append(self.equipment["armor"])
                 self.equipment["armor"] = item
