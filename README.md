@@ -165,16 +165,52 @@
 - 收集面包用于治疗和喂养
 - 完成任务获得大量奖励
 
-## 🏗️ 项目结构
+## 🏗️ 项目结构 (v4.0 模块化版本)
 
-### 📂 文件结构
+### 📂 新模块化文件结构
 ```
 /test/
-├── adventure_game.py    # 主游戏文件 (2039行)
-├── test_game.py         # 测试文件 (138行)
+├── adventure_game.py    # 原版入口 (兼容性)
+├── game/                # 🆕 模块化游戏包
+│   ├── __init__.py     
+│   ├── main.py         # 🆕 模块化游戏主入口
+│   ├── core/           # 🆕 核心游戏对象
+│   │   ├── __init__.py
+│   │   ├── player.py   # Player类 (632行)
+│   │   ├── enemy.py    # Enemy类 (127行)
+│   │   ├── pet.py      # Pet类 (156行)
+│   │   └── utils.py    # 工具函数 (64行)
+│   ├── systems/        # 🆕 游戏系统
+│   │   ├── __init__.py
+│   │   ├── combat.py   # 战斗系统 (136行)
+│   │   ├── achievements.py # 成就系统
+│   │   └── save_load.py    # 存档系统
+│   └── world/          # 🆕 游戏世界
+│       ├── __init__.py
+│       └── shops/      # 商店系统
+│           ├── __init__.py
+│           ├── weapon_shop.py   # 武器商店
+│           ├── magic_shop.py    # 魔法商店
+│           ├── pet_shop.py      # 宠物商店
+│           └── general_shop.py  # 通用商店
+├── test_game.py         # 测试文件
 ├── README.md           # 项目文档
 ├── .gitignore          # Git忽略文件
-└── savegame_*.json     # 游戏存档 (被gitignore忽略)
+└── savegame_*.json     # 游戏存档
+```
+
+### 🚀 运行方式
+
+#### 传统方式 (向后兼容)
+```bash
+python3 adventure_game.py
+```
+
+#### 模块化方式 (推荐)
+```bash
+python3 -m game.main
+# 或
+python3 game/main.py
 ```
 
 ### 🏛️ 核心架构
@@ -256,7 +292,14 @@ python3 test_game.py
 
 ## 📝 更新日志
 
-### v3.2 (最新版本)
+### v4.0 (最新版本)
+- 🏗️ **重大重构**: 代码结构完全模块化
+- 📦 **模块化架构**: 分离为core、systems、world三大模块
+- 🔧 **代码优化**: 主文件从2039行减少到476行 (70%减少)
+- 🎯 **更好维护性**: 各功能模块独立，易于扩展和测试
+- 🧪 **向后兼容**: 原有功能完全保持，游戏体验不变
+
+### v3.2 
 - 🐛 修复眩晕等状态效果回合处理bug
 - ⚡ 状态效果现在在正确回合生效
 - 🔧 优化战斗回合逻辑，先检查状态再处理效果
