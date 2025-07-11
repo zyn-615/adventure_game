@@ -743,10 +743,10 @@ def main():
                 # Boss挑战
                 boss_combat = BossCombatSystem()
                 boss_encounters = [
-                    ("🐉 远古巨龙", 280, 42, "dragon"),
-                    ("💀 死灵巫师", 240, 38, "lich"),
-                    ("🏔️ 山岳巨人", 320, 46, "giant"),
-                    ("👑 堕落国王", 260, 40, "standard")
+                    ("🐉 远古巨龙", 280, 35, "dragon"),
+                    ("💀 死灵巫师", 240, 32, "lich"),
+                    ("🏔️ 山岳巨人", 320, 38, "giant"),
+                    ("👑 堕落国王", 260, 34, "standard")
                 ]
                 
                 colored_print("\n👑 === Boss挑战 ===", Colors.BOLD + Colors.RED)
