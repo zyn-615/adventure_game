@@ -10,8 +10,8 @@ import os
 import json
 
 # 从模块化版本导入核心组件
-from game.core import Player, Enemy, Pet, Colors, colored_print, health_bar
-from game.systems import CombatSystem
+from game.core import Player, Enemy, Pet, Boss, Colors, colored_print, health_bar
+from game.systems import CombatSystem, BossCombatSystem
 from game.world import WeaponShop, MagicShop, PetShop, shop, discount_shop
 
 # Player class is now imported from game.core
@@ -691,15 +691,16 @@ def main():
         print("5. ❄️ 进入冰窟")
         print("6. 🏘️ 访问城镇")
         print("7. 🏪 访问商店")
-        print("8. 📊 查看状态")
-        print("9. 🎒 管理装备")
-        print("10. 🐾 宠物管理")
-        print("11. 🏆 查看成就")
-        print("12. 💾 保存游戏")
-        print("13. 🚪 退出游戏")
+        print("8. 👑 Boss挑战")
+        print("9. 📊 查看状态")
+        print("10. 🎒 管理装备")
+        print("11. 🐾 宠物管理")
+        print("12. 🏆 查看成就")
+        print("13. 💾 保存游戏")
+        print("14. 🚪 退出游戏")
         
         try:
-            choice = int(input("\n请选择 (1-13): "))
+            choice = int(input("\n请选择 (1-14): "))
             
             if choice in [1, 2, 3, 4, 5]:
                 location_name, enemies = locations[choice-1]
@@ -739,9 +740,51 @@ def main():
                 shop(player)
             
             elif choice == 8:
-                player.show_status()
+                # Boss挑战
+                boss_combat = BossCombatSystem()
+                boss_encounters = [
+                    ("🐉 远古巨龙", 300, 45, "dragon"),
+                    ("💀 死灵巫师", 250, 40, "lich"),
+                    ("🏔️ 山岳巨人", 350, 50, "giant"),
+                    ("👑 堕落国王", 280, 42, "standard")
+                ]
+                
+                colored_print("\n👑 === Boss挑战 ===", Colors.BOLD + Colors.RED)
+                colored_print("选择你想挑战的Boss:", Colors.YELLOW)
+                
+                for i, (name, health, attack, boss_type) in enumerate(boss_encounters):
+                    print(f"{i+1}. {name} (生命值: {health}, 攻击力: {attack})")
+                
+                print("0. 返回")
+                
+                try:
+                    boss_choice = int(input("选择Boss (0-4): "))
+                    if boss_choice == 0:
+                        continue
+                    elif 1 <= boss_choice <= len(boss_encounters):
+                        boss_name, boss_health, boss_attack, boss_type = boss_encounters[boss_choice-1]
+                        
+                        # 检查玩家等级要求
+                        min_level = 3 + boss_choice
+                        if player.level < min_level:
+                            colored_print(f"❌ 挑战 {boss_name} 需要至少 {min_level} 级！", Colors.RED)
+                            continue
+                        
+                        colored_print(f"🎯 你选择挑战 {boss_name}！", Colors.CYAN)
+                        result = boss_combat.start_boss_battle(player, boss_name, boss_health, boss_attack, boss_type)
+                        
+                        if result == "game_over":
+                            print("\n💀 游戏结束！")
+                            break
+                    else:
+                        colored_print("❌ 无效选择", Colors.RED)
+                except ValueError:
+                    colored_print("❌ 请输入数字", Colors.RED)
             
             elif choice == 9:
+                player.show_status()
+            
+            elif choice == 10:
                 equip_items = [item for item in player.inventory 
                               if item in ["🗡️ 木剑", "⚔️ 铁剑", "🗡️ 精钢剑", "🏹 长弓", "⚔️ 双手剑", "🛡️ 盾牌", "🛡️ 铁甲"]]
                 if equip_items:
@@ -761,7 +804,7 @@ def main():
                 else:
                     print("❌ 没有可装备的物品")
             
-            elif choice == 10:
+            elif choice == 11:
                 # 宠物管理
                 while True:
                     colored_print("\n🐾 === 宠物管理 ===", Colors.BOLD)
@@ -800,13 +843,13 @@ def main():
                     except ValueError:
                         colored_print("请输入数字", Colors.RED)
             
-            elif choice == 11:
+            elif choice == 12:
                 player.show_achievements()
             
-            elif choice == 12:
+            elif choice == 13:
                 player.save_game()
             
-            elif choice == 13:
+            elif choice == 14:
                 print("👋 感谢游玩！再见！")
                 break
             
