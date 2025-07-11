@@ -10,7 +10,7 @@ import os
 import json
 
 # 从模块化版本导入核心组件
-from game.core import Player, Enemy, Pet, Boss, Colors, colored_print, health_bar
+from game.core import Player, Enemy, Pet, Boss, Colors, colored_print, health_bar, stat_progress_bar
 from game.systems import CombatSystem, BossCombatSystem
 from game.world import WeaponShop, MagicShop, PetShop, shop, discount_shop
 

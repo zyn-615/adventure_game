@@ -25,14 +25,14 @@ import os
 
 # Handle relative imports
 try:
-    from .utils import Colors, colored_print, health_bar
+    from .utils import Colors, colored_print, health_bar, exp_progress_bar, quest_progress_bar, stat_progress_bar
     from .pet import Pet
 except ImportError:
     # Standalone execution - adjust path and import
     import sys
     import os
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    from game.core.utils import Colors, colored_print, health_bar
+    from game.core.utils import Colors, colored_print, health_bar, exp_progress_bar, quest_progress_bar, stat_progress_bar
     from game.core.pet import Pet
 
 
@@ -150,31 +150,52 @@ class Player:
     def show_status(self):
         """Display complete player status including stats, equipment, quests, and pets"""
         colored_print(f"\n📊 === {self.name} 的状态 ===", Colors.BOLD)
-        print(f"❤️  生命值: {health_bar(self.health, 100)}")
-        print(f"💙 法力值: {health_bar(self.mana, self.max_mana)}")
+        
+        # 使用新的进度条显示生命值和法力值
+        print(f"❤️  生命值: {stat_progress_bar(self.health, 100, 'health')}")
+        print(f"💙 法力值: {stat_progress_bar(self.mana, self.max_mana, 'mana')}")
+        
         colored_print(f"💰 金币: {self.gold}", Colors.YELLOW)
-        colored_print(f"⭐ 等级: {self.level} (经验: {self.exp}/100)", Colors.CYAN)
+        
+        # 使用新的经验值进度条
+        print(f"{exp_progress_bar(self.exp, self.level)}")
+        
         if self.current_save_slot:
             print(f"💾 当前存档: 槽位 {self.current_save_slot}")
         print(f"🎒 物品: {', '.join(self.inventory)}")
+        
         colored_print("🔮 技能:", Colors.MAGENTA)
         for skill, data in self.skills.items():
             if data["level"] > 0:
                 print(f"   {skill} (Lv.{data['level']}) - 消耗: {data['cost']}法力")
+        
         colored_print("⚔️ 装备:", Colors.BLUE)
         for slot, item in self.equipment.items():
             if item:
                 print(f"   {slot.capitalize()}: {item}")
             else:
                 print(f"   {slot.capitalize()}: 无")
-        colored_print("📋 任务:", Colors.GREEN)
-        for quest, data in self.quests.items():
-            if not data["completed"]:
-                print(f"   {quest}: {data['progress']}/{data['target']} (奖励: {data['reward']}金币)")
+        
+        # 使用进度条显示任务进度
+        colored_print("📋 进行中的任务:", Colors.GREEN)
+        active_quests = [(name, data) for name, data in self.quests.items() if not data["completed"]]
+        
+        if active_quests:
+            # 显示前5个未完成任务，避免界面过长
+            display_quests = active_quests[:5]
+            for quest_name, data in display_quests:
+                print(f"   {quest_progress_bar(data['progress'], data['target'], quest_name)}")
+                print(f"     奖励: {data['reward']}金币")
+            
+            if len(active_quests) > 5:
+                print(f"   ... 还有 {len(active_quests) - 5} 个任务未显示")
+        else:
+            print("   所有任务已完成！")
         
         # 显示已完成的成就
         completed_achievements = [name for name, data in self.achievements.items() if data["completed"]]
-        colored_print(f"🏆 成就: {len(completed_achievements)}/{len(self.achievements)} 已完成", Colors.YELLOW)
+        achievement_progress = f"{len(completed_achievements)}/{len(self.achievements)}"
+        print(f"🏆 成就: {quest_progress_bar(len(completed_achievements), len(self.achievements), '总成就进度', 15)}")
         
         # 显示当前状态效果
         active_effects = [name for name, data in self.status_effects.items() if data["duration"] > 0]
@@ -188,8 +209,8 @@ class Player:
         # 显示宠物信息
         if self.active_pet:
             colored_print(f"🐾 当前宠物: {self.active_pet.get_display_name()}", Colors.CYAN)
-            print(f"   忠诚度: {self.active_pet.loyalty}/100")
-            print(f"   经验: {self.active_pet.exp}/100")
+            print(f"   {stat_progress_bar(self.active_pet.loyalty, 100, 'loyalty')}")
+            print(f"   {stat_progress_bar(self.active_pet.exp, 100, 'exp')}")
     
     def add_pet(self, pet_type, name):
         """
@@ -240,7 +261,8 @@ class Player:
         for i, pet in enumerate(self.pets):
             status = "★" if pet == self.active_pet else " "
             print(f"{i+1}.{status} {pet.get_display_name()}")
-            print(f"   忠诚度: {pet.loyalty}/100, 经验: {pet.exp}/100")
+            print(f"   {stat_progress_bar(pet.loyalty, 100, 'loyalty', 10)} 忠诚度")
+            print(f"   {stat_progress_bar(pet.exp, 100, 'exp', 10)} 经验")
     
     def feed_pet(self, pet_index):
         """
@@ -467,12 +489,33 @@ class Player:
     def show_achievements(self):
         """Display all achievements with completion status"""
         print("\n🏆 === 成就系统 ===")
-        for name, data in self.achievements.items():
-            status = "✅" if data["completed"] else "❌"
-            print(f"{status} {name}: {data['description']}")
+        
+        # 按类别分组显示成就
+        combat_achievements = ["🏆 初出茅庐", "⚔️ 战士", "🛡️ 坚韧"]
+        wealth_achievements = ["💰 小富翁", "🏪 购物狂", "💎 收藏家"]
+        skill_achievements = ["🔮 法师", "🌟 传奇"]
+        special_achievements = ["🎯 完美主义", "🌈 幸运儿"]
+        
+        categories = [
+            ("⚔️ 战斗成就", combat_achievements),
+            ("💰 财富成就", wealth_achievements),
+            ("🎓 技能成就", skill_achievements),
+            ("🌟 特殊成就", special_achievements)
+        ]
+        
+        for category_name, achievement_list in categories:
+            colored_print(f"\n{category_name}:", Colors.CYAN)
+            for name in achievement_list:
+                if name in self.achievements:
+                    data = self.achievements[name]
+                    status = "✅" if data["completed"] else "❌"
+                    print(f"  {status} {name}: {data['description']}")
         
         completed = sum(1 for data in self.achievements.values() if data["completed"])
-        print(f"\n总进度: {completed}/{len(self.achievements)} ({completed/len(self.achievements)*100:.1f}%)")
+        total = len(self.achievements)
+        
+        print(f"\n{quest_progress_bar(completed, total, '总成就进度', 20)}")
+        print(f"完成率: {completed/total*100:.1f}%")
     
     def track_near_death(self):
         """Track near-death survival for achievements"""
@@ -491,7 +534,7 @@ class Player:
             quest = self.quests["🐺 森林清理"]
             if not quest["completed"]:
                 quest["progress"] += 1
-                print(f"📋 任务进度: 🐺 森林清理 ({quest['progress']}/{quest['target']})")
+                print(f"📋 {quest_progress_bar(quest['progress'], quest['target'], '🐺 森林清理')}")
                 if quest["progress"] >= quest["target"]:
                     quest["completed"] = True
                     self.gold += quest["reward"]
@@ -501,7 +544,7 @@ class Player:
             quest = self.quests["🏰 古堡探索"]
             if not quest["completed"]:
                 quest["progress"] += 1
-                print(f"📋 任务进度: 🏰 古堡探索 ({quest['progress']}/{quest['target']})")
+                print(f"📋 {quest_progress_bar(quest['progress'], quest['target'], '🏰 古堡探索')}")
                 if quest["progress"] >= quest["target"]:
                     quest["completed"] = True
                     self.gold += quest["reward"]
@@ -511,7 +554,7 @@ class Player:
             quest = self.quests["🌋 火山征服"]
             if not quest["completed"]:
                 quest["progress"] += 1
-                print(f"📋 任务进度: 🌋 火山征服 ({quest['progress']}/{quest['target']})")
+                print(f"📋 {quest_progress_bar(quest['progress'], quest['target'], '🌋 火山征服')}")
                 if quest["progress"] >= quest["target"]:
                     quest["completed"] = True
                     self.gold += quest["reward"]
@@ -521,7 +564,7 @@ class Player:
             quest = self.quests["❄️ 冰窟探险"]
             if not quest["completed"]:
                 quest["progress"] += 1
-                print(f"📋 任务进度: ❄️ 冰窟探险 ({quest['progress']}/{quest['target']})")
+                print(f"📋 {quest_progress_bar(quest['progress'], quest['target'], '❄️ 冰窟探险')}")
                 if quest["progress"] >= quest["target"]:
                     quest["completed"] = True
                     self.gold += quest["reward"]
@@ -531,7 +574,7 @@ class Player:
             quest = self.quests["🌊 深海守护"]
             if not quest["completed"]:
                 quest["progress"] += 1
-                print(f"📋 任务进度: 🌊 深海守护 ({quest['progress']}/{quest['target']})")
+                print(f"📋 {quest_progress_bar(quest['progress'], quest['target'], '🌊 深海守护')}")
                 if quest["progress"] >= quest["target"]:
                     quest["completed"] = True
                     self.gold += quest["reward"]
@@ -541,7 +584,7 @@ class Player:
             quest = self.quests["🏜️ 沙漠商队"]
             if not quest["completed"]:
                 quest["progress"] += 1
-                print(f"📋 任务进度: 🏜️ 沙漠商队 ({quest['progress']}/{quest['target']})")
+                print(f"📋 {quest_progress_bar(quest['progress'], quest['target'], '🏜️ 沙漠商队')}")
                 if quest["progress"] >= quest["target"]:
                     quest["completed"] = True
                     self.gold += quest["reward"]
@@ -551,7 +594,7 @@ class Player:
             quest = self.quests["🏛️ 地下城净化"]
             if not quest["completed"]:
                 quest["progress"] += 1
-                print(f"📋 任务进度: 🏛️ 地下城净化 ({quest['progress']}/{quest['target']})")
+                print(f"📋 {quest_progress_bar(quest['progress'], quest['target'], '🏛️ 地下城净化')}")
                 if quest["progress"] >= quest["target"]:
                     quest["completed"] = True
                     self.gold += quest["reward"]
@@ -561,7 +604,7 @@ class Player:
             quest = self.quests["🌌 星空探索"]
             if not quest["completed"]:
                 quest["progress"] += 1
-                print(f"📋 任务进度: 🌌 星空探索 ({quest['progress']}/{quest['target']})")
+                print(f"📋 {quest_progress_bar(quest['progress'], quest['target'], '🌌 星空探索')}")
                 if quest["progress"] >= quest["target"]:
                     quest["completed"] = True
                     self.gold += quest["reward"]
@@ -571,7 +614,7 @@ class Player:
             quest = self.quests["🎪 奇幻马戏团"]
             if not quest["completed"]:
                 quest["progress"] += 1
-                print(f"📋 任务进度: 🎪 奇幻马戏团 ({quest['progress']}/{quest['target']})")
+                print(f"📋 {quest_progress_bar(quest['progress'], quest['target'], '🎪 奇幻马戏团')}")
                 if quest["progress"] >= quest["target"]:
                     quest["completed"] = True
                     self.gold += quest["reward"]
@@ -582,7 +625,7 @@ class Player:
             if not quest["completed"]:
                 gem_count = self.inventory.count("💎 宝石")
                 quest["progress"] = gem_count
-                print(f"📋 任务进度: 💎 宝石收集 ({quest['progress']}/{quest['target']})")
+                print(f"📋 {quest_progress_bar(quest['progress'], quest['target'], '💎 宝石收集')}")
                 if quest["progress"] >= quest["target"]:
                     quest["completed"] = True
                     self.gold += quest["reward"]
@@ -788,10 +831,10 @@ class Player:
         
         # 基础信息
         colored_print("🎯 基础信息:", Colors.YELLOW)
-        print(f"   等级: {self.level} | 经验: {self.exp}/100")
-        print(f"   生命值: {self.health}/100")
-        print(f"   法力值: {self.mana}/{self.max_mana}")
-        print(f"   金币: {self.gold}")
+        print(f"   {exp_progress_bar(self.exp, self.level, 15)}")
+        print(f"   {stat_progress_bar(self.health, 100, 'health', 15)} 生命值")
+        print(f"   {stat_progress_bar(self.mana, self.max_mana, 'mana', 15)} 法力值")
+        print(f"   💰 金币: {self.gold}")
         
         # 战斗属性
         colored_print("\n⚔️ 战斗属性:", Colors.RED)
@@ -829,8 +872,8 @@ class Player:
             colored_print("\n🐾 活跃宠物:", Colors.GREEN)
             print(f"   名称: {self.active_pet.get_display_name()}")
             print(f"   等级: {self.active_pet.level}")
-            print(f"   忠诚度: {self.active_pet.loyalty}/100")
-            print(f"   经验: {self.active_pet.exp}/100")
+            print(f"   {stat_progress_bar(self.active_pet.loyalty, 100, 'loyalty', 12)} 忠诚度")
+            print(f"   {stat_progress_bar(self.active_pet.exp, 100, 'exp', 12)} 经验")
         
         # 状态效果
         active_effects = [name for name, data in self.status_effects.items() if data["duration"] > 0]
