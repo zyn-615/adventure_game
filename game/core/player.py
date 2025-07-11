@@ -101,7 +101,8 @@ class Player:
             "skills_used": 0,
             "items_bought": 0,
             "random_events": 0,
-            "near_death_survived": 0
+            "near_death_survived": 0,
+            "potion_buff": 0  # 药水增益次数
         }
         # 状态效果系统
         self.status_effects = {
@@ -484,7 +485,9 @@ class Player:
             "🐉 龙鳞护甲": 10,  # 防御型装备但有攻击加成
             "💀 死灵法杖": 35,
             "🏔️ 巨人之锤": 40,
-            "👑 王者徽章": 20
+            "👑 王者徽章": 20,
+            # 传说装备
+            "⚔️ 传说之剑": 45
         }
         
         current_weapon = self.equipment.get("weapon")
@@ -497,6 +500,12 @@ class Player:
             pet_bonus = self.active_pet.abilities.get("attack_boost", 0)
         
         total_damage = base_damage + weapon_bonus + pet_bonus
+        
+        # 检查药水增益
+        if self.stats.get("potion_buff", 0) > 0:
+            total_damage *= 2  # 伤害翻倍
+            self.stats["potion_buff"] -= 1  # 消耗增益
+            colored_print("💪 药水增益生效！伤害翻倍！", Colors.YELLOW)
         
         # 计算暴击率（包含宠物加成）
         crit_chance = 0.15
@@ -527,7 +536,9 @@ class Player:
             "🐉 龙鳞护甲": 25,
             "💀 死灵法杖": 5,  # 法杖提供少量魔法防御
             "🏔️ 巨人之锤": 10,  # 重武器提供一定防御
-            "👑 王者徽章": 12
+            "👑 王者徽章": 12,
+            # 传说装备
+            "⚔️ 传说之剑": 8  # 传说之剑提供少量防御
         }
         
         current_armor = self.equipment.get("armor")
@@ -565,6 +576,85 @@ class Player:
             return True
         return False
     
+    def use_item(self, item):
+        """
+        使用物品
+        
+        Args:
+            item (str): 要使用的物品名称
+        """
+        if item not in self.inventory:
+            colored_print(f"❌ 背包中没有 {item}", Colors.RED)
+            return False
+            
+        if item == "🍞 面包":
+            old_health = self.health
+            self.health = min(100, self.health + 30)
+            self.inventory.remove(item)
+            heal_amount = self.health - old_health
+            colored_print(f"🍞 使用了面包，恢复了 {heal_amount} 生命值！", Colors.GREEN)
+            return True
+            
+        elif item == "🧪 神秘药水":
+            colored_print("🧪 你喝下了神秘药水...", Colors.MAGENTA)
+            
+            # 神秘药水随机效果
+            effects = [
+                ("health", "💚 药水恢复了你的生命值！", 50),
+                ("mana", "🔮 药水恢复了你的法力值！", 25),
+                ("both", "✨ 药水同时恢复了生命值和法力值！", (30, 15)),
+                ("buff", "💪 药水增强了你的力量！下次攻击伤害翻倍！", None),
+                ("skill", "📚 药水让你领悟了新的技能！", None)
+            ]
+            
+            effect_type, message, value = random.choice(effects)
+            self.inventory.remove(item)
+            
+            if effect_type == "health":
+                old_health = self.health
+                self.health = min(100, self.health + value)
+                colored_print(message, Colors.GREEN)
+                colored_print(f"   恢复了 {self.health - old_health} 生命值！", Colors.GREEN)
+                
+            elif effect_type == "mana":
+                old_mana = self.mana
+                self.mana = min(50, self.mana + value)
+                colored_print(message, Colors.MAGENTA)
+                colored_print(f"   恢复了 {self.mana - old_mana} 法力值！", Colors.MAGENTA)
+                
+            elif effect_type == "both":
+                health_restore, mana_restore = value
+                old_health = self.health
+                old_mana = self.mana
+                self.health = min(100, self.health + health_restore)
+                self.mana = min(50, self.mana + mana_restore)
+                colored_print(message, Colors.CYAN)
+                colored_print(f"   恢复了 {self.health - old_health} 生命值和 {self.mana - old_mana} 法力值！", Colors.CYAN)
+                
+            elif effect_type == "buff":
+                colored_print(message, Colors.YELLOW)
+                # 这里可以设置一个临时buff标记
+                self.stats["potion_buff"] = 1  # 下次攻击翻倍
+                
+            elif effect_type == "skill":
+                colored_print(message, Colors.CYAN)
+                # 随机学会一个技能
+                available_skills = [skill for skill, data in self.skills.items() if data["level"] == 0]
+                if available_skills:
+                    skill = random.choice(available_skills)
+                    self.skills[skill]["level"] = 1
+                    colored_print(f"   🔮 学会了技能: {skill}！", Colors.MAGENTA)
+                else:
+                    # 如果没有可学技能，给经验
+                    self.gain_exp(100)
+                    colored_print("   ✨ 获得了 100 经验值！", Colors.CYAN)
+            
+            return True
+            
+        else:
+            colored_print(f"❌ {item} 无法使用", Colors.RED)
+            return False
+    
     def equip_item(self, item):
         """
         Equip an item from inventory
@@ -575,7 +665,7 @@ class Player:
         if item in self.inventory:
             # 武器装备
             weapon_items = ["🗡️ 木剑", "⚔️ 铁剑", "🗡️ 精钢剑", "🏹 长弓", "⚔️ 双手剑", 
-                           "💀 死灵法杖", "🏔️ 巨人之锤", "👑 王者徽章"]
+                           "💀 死灵法杖", "🏔️ 巨人之锤", "👑 王者徽章", "⚔️ 传说之剑"]
             
             if item in weapon_items:
                 if self.equipment["weapon"] and self.equipment["weapon"] != item:

@@ -179,12 +179,44 @@ class CombatSystem:
     
     def _handle_item_action(self, player):
         """Handle player item usage action."""
+        usable_items = []
+        
+        # 检查可用物品
         if "🍞 面包" in player.inventory:
-            player.health = min(100, player.health + 30)
-            player.inventory.remove("🍞 面包")
-            colored_print("🍞 使用了面包，恢复30生命值！", Colors.GREEN)
-        else:
+            usable_items.append("🍞 面包")
+        if "🧪 神秘药水" in player.inventory:
+            usable_items.append("🧪 神秘药水")
+            
+        if not usable_items:
             colored_print("❌ 没有可用物品", Colors.RED)
+            return None
+            
+        if len(usable_items) == 1:
+            # 只有一个物品，直接使用
+            item = usable_items[0]
+            player.use_item(item)
+        else:
+            # 多个物品，让玩家选择
+            colored_print("选择要使用的物品:", Colors.CYAN)
+            for i, item in enumerate(usable_items):
+                print(f"{i+1}. {item}")
+            print("0. 取消")
+            
+            try:
+                choice = int(input("选择物品 (0-取消): "))
+                if choice == 0:
+                    colored_print("取消使用物品", Colors.YELLOW)
+                    return None
+                elif 1 <= choice <= len(usable_items):
+                    item = usable_items[choice-1]
+                    player.use_item(item)
+                else:
+                    colored_print("❌ 无效选择", Colors.RED)
+                    return None
+            except ValueError:
+                colored_print("❌ 请输入数字", Colors.RED)
+                return None
+                
         return None
     
     def _handle_skill_action(self, player, enemy):
