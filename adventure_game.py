@@ -743,7 +743,7 @@ def main():
             
             elif choice == 9:
                 equip_items = [item for item in player.inventory 
-                              if item in ["🗡️ 木剑", "⚔️ 铁剑", "🗡️ 精钢剑", "🛡️ 盾牌", "🛡️ 铁甲"]]
+                              if item in ["🗡️ 木剑", "⚔️ 铁剑", "🗡️ 精钢剑", "🏹 长弓", "⚔️ 双手剑", "🛡️ 盾牌", "🛡️ 铁甲"]]
                 if equip_items:
                     print("\n🎒 可装备物品:")
                     for i, item in enumerate(equip_items):
