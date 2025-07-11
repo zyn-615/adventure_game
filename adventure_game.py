@@ -577,7 +577,8 @@ def type_text(text, delay=0.03):
     print()
 
 def random_event(player):
-    events = [
+    # 基础事件
+    basic_events = [
         {
             "name": "🌟 神秘商人",
             "description": "你遇到了一个神秘商人，他愿意以半价出售物品！",
@@ -609,27 +610,237 @@ def random_event(player):
         }
     ]
     
-    event = random.choice(events)
-    player.stats["random_events"] += 1  # 追踪随机事件次数
-    print(f"\n✨ {event['name']}")
-    print(f"   {event['description']}")
+    # 特殊互动事件
+    interactive_events = [
+        {
+            "name": "🗡️ 剑之试炼",
+            "description": "一把古老的剑插在石头中，传说只有勇者能拔出它！",
+            "type": "interactive",
+            "action": "sword_trial"
+        },
+        {
+            "name": "🔮 水晶神谕",
+            "description": "一个神秘的水晶球开始发光，似乎要告诉你什么...",
+            "type": "interactive", 
+            "action": "crystal_oracle"
+        },
+        {
+            "name": "🎲 幸运骰子",
+            "description": "你发现了一个金色的骰子，要试试运气吗？",
+            "type": "interactive",
+            "action": "luck_dice"
+        },
+        {
+            "name": "🐾 迷失小动物",
+            "description": "一只受伤的小动物蜷缩在路边，看起来需要帮助...",
+            "type": "interactive",
+            "action": "help_animal"
+        },
+        {
+            "name": "📜 古老卷轴",
+            "description": "你发现了一卷古老的羊皮纸，上面记载着神秘的知识...",
+            "type": "interactive",
+            "action": "ancient_scroll"
+        }
+    ]
     
+    # 负面事件（增加挑战性）
+    negative_events = [
+        {
+            "name": "🌫️ 迷雾陷阱",
+            "description": "突然降下的迷雾让你迷失了方向...",
+            "type": "negative",
+            "effect": "confusion"
+        },
+        {
+            "name": "🕳️ 隐藏陷阱",
+            "description": "你不小心踩到了一个隐藏的陷阱！",
+            "type": "damage",
+            "value": random.randint(5, 15)
+        },
+        {
+            "name": "👻 幽灵干扰",
+            "description": "一个恶作剧的幽灵偷走了你的一些法力！",
+            "type": "mana_drain",
+            "value": random.randint(5, 10)
+        }
+    ]
+    
+    # 根据概率选择事件类型
+    event_roll = random.random()
+    if event_roll < 0.6:  # 60% 基础事件
+        events = basic_events
+    elif event_roll < 0.85:  # 25% 互动事件
+        events = interactive_events
+    else:  # 15% 负面事件
+        events = negative_events
+    
+    event = random.choice(events)
+    player.stats["random_events"] += 1
+    
+    colored_print(f"\n✨ {event['name']}", Colors.BOLD + Colors.CYAN)
+    colored_print(f"   {event['description']}", Colors.CYAN)
+    
+    # 处理不同类型的事件
     if event["type"] == "heal":
         player.health = min(100, player.health + event["value"])
-        print(f"   恢复了 {event['value']} 点生命值！")
+        colored_print(f"   💚 恢复了 {event['value']} 点生命值！", Colors.GREEN)
     elif event["type"] == "gold":
         player.gold += event["value"]
-        print(f"   获得了 {event['value']} 金币！")
+        colored_print(f"   💰 获得了 {event['value']} 金币！", Colors.YELLOW)
     elif event["type"] == "exp":
         player.gain_exp(event["value"])
-        print(f"   获得了 {event['value']} 经验值！")
+        colored_print(f"   ✨ 获得了 {event['value']} 经验值！", Colors.CYAN)
     elif event["type"] == "mana":
         player.mana = min(50, player.mana + event["value"])
-        print(f"   恢复了 {event['value']} 法力值！")
+        colored_print(f"   🔮 恢复了 {event['value']} 法力值！", Colors.MAGENTA)
     elif event["type"] == "shop_discount":
         discount_shop(player)
+    elif event["type"] == "interactive":
+        handle_interactive_event(player, event["action"])
+    elif event["type"] == "damage":
+        player.health = max(1, player.health - event["value"])
+        colored_print(f"   💥 受到了 {event['value']} 点伤害！", Colors.RED)
+    elif event["type"] == "mana_drain":
+        player.mana = max(0, player.mana - event["value"])
+        colored_print(f"   👻 失去了 {event['value']} 点法力！", Colors.RED)
+    elif event["type"] == "negative":
+        if event["effect"] == "confusion":
+            colored_print("   😵 你感到头晕目眩，下次战斗开始时法力减少5点！", Colors.RED)
+            player.mana = max(0, player.mana - 5)
     
-    player.check_achievements()  # 检查成就
+    player.check_achievements()
+
+def handle_interactive_event(player, action):
+    \"\"\"处理互动事件\"\"\"
+    if action == "sword_trial":
+        colored_print("\\n⚔️ 你决定尝试拔出这把剑...", Colors.YELLOW)
+        choice = input("你要如何尝试？(1-用力拔取 / 2-轻柔尝试 / 3-放弃): ")
+        
+        if choice == "1":
+            if random.random() < 0.3:  # 30% 成功率
+                colored_print("✅ 剑被你拔了出来！这是一把传说中的武器！", Colors.GREEN)
+                player.inventory.append("⚔️ 传说之剑")
+                colored_print("   获得了 ⚔️ 传说之剑！", Colors.YELLOW)
+            else:
+                colored_print("❌ 剑纹丝不动，你的手被震伤了！", Colors.RED)
+                player.health = max(1, player.health - 10)
+        elif choice == "2":
+            if random.random() < 0.6:  # 60% 成功率
+                colored_print("✅ 你轻柔地触碰剑柄，感受到一股神秘的力量！", Colors.GREEN)
+                player.gain_exp(50)
+                colored_print("   获得了 50 经验值！", Colors.CYAN)
+            else:
+                colored_print("💭 什么也没有发生...", Colors.YELLOW)
+        else:
+            colored_print("🚶 你明智地选择了离开。", Colors.CYAN)
+    
+    elif action == "crystal_oracle":
+        colored_print("\\n🔮 水晶球开始闪烁...", Colors.MAGENTA)
+        oracle_messages = [
+            "未来的道路充满挑战，但胜利属于勇者！",
+            "小心火山深处的危险，但宝藏就在那里等待！",
+            "你的宠物将在关键时刻拯救你的生命！",
+            "一个强大的敌人正在等待，准备好你的最强装备！",
+            "友善对待遇到的每一个生物，善有善报！"
+        ]
+        message = random.choice(oracle_messages)
+        colored_print(f"   💬 神谕: {message}", Colors.MAGENTA)
+        
+        # 给予一个小奖励
+        if random.random() < 0.5:
+            player.mana = min(50, player.mana + 15)
+            colored_print("   🔮 预言的力量恢复了你的法力！", Colors.MAGENTA)
+    
+    elif action == "luck_dice":
+        colored_print("\\n🎲 你投掷了幸运骰子...", Colors.YELLOW)
+        dice_roll = random.randint(1, 6)
+        colored_print(f"   🎲 骰子显示: {dice_roll}！", Colors.YELLOW)
+        
+        if dice_roll == 6:
+            colored_print("🍀 大吉！你获得了丰厚的奖励！", Colors.GREEN)
+            player.gold += 100
+            player.gain_exp(80)
+            colored_print("   💰 获得了 100 金币和 80 经验值！", Colors.YELLOW)
+        elif dice_roll >= 4:
+            colored_print("😊 小吉！你获得了一些奖励！", Colors.GREEN)
+            reward = random.choice(["金币", "经验", "治疗"])
+            if reward == "金币":
+                bonus = random.randint(30, 50)
+                player.gold += bonus
+                colored_print(f"   💰 获得了 {bonus} 金币！", Colors.YELLOW)
+            elif reward == "经验":
+                bonus = random.randint(30, 50)
+                player.gain_exp(bonus)
+                colored_print(f"   ✨ 获得了 {bonus} 经验值！", Colors.CYAN)
+            else:
+                player.health = min(100, player.health + 25)
+                colored_print("   💚 恢复了 25 生命值！", Colors.GREEN)
+        else:
+            colored_print("😔 运气不佳...什么也没有发生。", Colors.RED)
+    
+    elif action == "help_animal":
+        colored_print("\\n🐾 你温柔地接近这只小动物...", Colors.GREEN)
+        choice = input("你要如何帮助它？(1-用面包喂食 / 2-用治疗术 / 3-轻抚安慰): ")
+        
+        helped = False
+        if choice == "1" and "🍞 面包" in player.inventory:
+            player.inventory.remove("🍞 面包")
+            helped = True
+            colored_print("🍞 你用面包喂食了小动物！", Colors.GREEN)
+        elif choice == "2" and player.mana >= 6:
+            player.mana -= 6
+            helped = True
+            colored_print("💚 你用治疗术帮助了小动物！", Colors.GREEN)
+        elif choice == "3":
+            helped = True
+            colored_print("🤗 你轻抚安慰了小动物！", Colors.GREEN)
+        
+        if helped:
+            colored_print("😊 小动物恢复了活力，感激地看着你！", Colors.GREEN)
+            # 有概率获得新宠物
+            if random.random() < 0.3 and len(player.pets) < 3:
+                pet_types = ["🐱 小猫", "🐶 小狗", "🐰 兔子", "🦜 鹦鹉"]
+                pet_type = random.choice(pet_types)
+                pet_name = f"救助的{pet_type.split()[1]}"
+                player.add_pet(pet_type, pet_name)
+                colored_print(f"   🎉 {pet_name} 决定跟随你的冒险！", Colors.CYAN)
+            else:
+                luck_bonus = random.randint(20, 40)
+                player.gold += luck_bonus
+                colored_print(f"   🍀 善良获得了回报！获得了 {luck_bonus} 金币！", Colors.YELLOW)
+        else:
+            colored_print("😔 你没有合适的方式帮助它...", Colors.RED)
+    
+    elif action == "ancient_scroll":
+        colored_print("\\n📜 你仔细研读这份古老的卷轴...", Colors.CYAN)
+        scroll_types = ["skill", "map", "recipe", "lore"]
+        scroll_type = random.choice(scroll_types)
+        
+        if scroll_type == "skill":
+            colored_print("✨ 这是一份技能卷轴！你学会了新的战斗技巧！", Colors.CYAN)
+            # 随机提升一个技能等级
+            available_skills = [skill for skill, data in player.skills.items() if data["level"] == 0]
+            if available_skills:
+                skill = random.choice(available_skills)
+                player.skills[skill]["level"] = 1
+                colored_print(f"   🔮 学会了技能: {skill}！", Colors.MAGENTA)
+            else:
+                player.gain_exp(60)
+                colored_print("   ✨ 获得了 60 经验值！", Colors.CYAN)
+        elif scroll_type == "map":
+            colored_print("🗺️ 这是一份古老的地图！标记了一个宝藏位置！", Colors.YELLOW)
+            treasure = random.randint(80, 120)
+            player.gold += treasure
+            colored_print(f"   💰 根据地图找到了 {treasure} 金币的宝藏！", Colors.YELLOW)
+        elif scroll_type == "recipe":
+            colored_print("🧪 这是一份炼金配方！", Colors.GREEN)
+            player.inventory.append("🧪 神秘药水")
+            colored_print("   🧪 获得了神秘药水！", Colors.GREEN)
+        else:
+            colored_print("📚 这记载了古老的传说，增长了你的见识！", Colors.CYAN)
+            player.gain_exp(40)
+            colored_print("   ✨ 获得了 40 经验值！", Colors.CYAN)
 
 
 def main():
@@ -677,7 +888,10 @@ def main():
         ("🏔️ 山洞", [("🦇 蝙蝠", 30, 12), ("👹 哥布林", 55, 20), ("🐉 洞穴龙", 130, 30)]),
         ("🏰 古堡", [("💀 骷髅战士", 65, 22), ("🐉 小龙", 110, 27), ("👻 幽灵", 50, 18)]),
         ("🌋 火山", [("🔥 火元素", 75, 26), ("🌋 岩浆怪", 95, 28), ("🐲 火龙", 160, 38)]),
-        ("❄️ 冰窟", [("🧊 冰元素", 70, 22), ("🐧 冰企鹅", 40, 16), ("🐻‍❄️ 冰熊", 120, 32)])
+        ("❄️ 冰窟", [("🧊 冰元素", 70, 22), ("🐧 冰企鹅", 40, 16), ("🐻‍❄️ 冰熊", 120, 32)]),
+        ("🌊 深海", [("🐙 章鱼", 80, 25), ("🦈 鲨鱼", 90, 28), ("🐋 海怪", 150, 35)]),
+        ("🏜️ 沙漠", [("🦂 沙漠蝎", 60, 20), ("🐍 毒蛇", 55, 22), ("🐪 沙漠之王", 140, 33)]),
+        ("🏛️ 地下城", [("🧟 僵尸", 70, 24), ("🐲 地龙", 120, 29), ("👑 地下君主", 180, 40)])
     ]
     
     while player.health > 0:
@@ -689,22 +903,33 @@ def main():
         print("3. 🏰 挑战古堡")
         print("4. 🌋 探索火山")
         print("5. ❄️ 进入冰窟")
-        print("6. 🏘️ 访问城镇")
-        print("7. 🏪 访问商店")
-        print("8. 👑 Boss挑战")
-        print("9. 📊 查看状态")
-        print("10. 🎒 管理装备")
-        print("11. 🐾 宠物管理")
-        print("12. 🏆 查看成就")
-        print("13. 💾 保存游戏")
-        print("14. 🚪 退出游戏")
+        print("6. 🌊 深海探险")
+        print("7. 🏜️ 沙漠远征")
+        print("8. 🏛️ 地下城冒险")
+        print("9. 🏘️ 访问城镇")
+        print("10. 🏪 访问商店")
+        print("11. 👑 Boss挑战")
+        print("12. 📊 查看状态")
+        print("13. 🎒 管理装备")
+        print("14. 🐾 宠物管理")
+        print("15. 🏆 查看成就")
+        print("16. 💾 保存游戏")
+        print("17. 🚪 退出游戏")
         
         try:
-            choice = int(input("\n请选择 (1-14): "))
+            choice = int(input("\n请选择 (1-17): "))
             
-            if choice in [1, 2, 3, 4, 5]:
+            if choice in [1, 2, 3, 4, 5, 6, 7, 8]:
                 location_name, enemies = locations[choice-1]
                 print(f"\n🚶 进入 {location_name}...")
+                
+                # 新区域特殊描述
+                if choice == 6:  # 深海
+                    print("🌊 你潜入深蓝色的海底世界，珊瑚礁和神秘的海洋生物环绕着你...")
+                elif choice == 7:  # 沙漠
+                    print("🏜️ 炙热的沙漠风吹过你的脸庞，远处的绿洲若隐若现...")
+                elif choice == 8:  # 地下城
+                    print("🏛️ 古老的石阶通向地下深处，空气中弥漫着神秘的魔法气息...")
                 
                 if random.random() < 0.8:  # 80% 概率遇到敌人
                     enemy_name, enemy_health, enemy_attack = random.choice(enemies)
@@ -718,6 +943,16 @@ def main():
                         pet_exp = random.randint(10, 20)
                         player.active_pet.gain_exp(pet_exp)
                         colored_print(f"🐾 {player.active_pet.name} 获得 {pet_exp} 经验！", Colors.CYAN)
+                        
+                        # 更新任务进度
+                        if choice == 1:  # 森林
+                            player.update_quest("forest", enemy_name)
+                        elif choice == 3:  # 古堡
+                            player.update_quest("castle", enemy_name)
+                        elif choice == 4:  # 火山
+                            player.update_quest("volcano", enemy_name)
+                        elif choice == 5:  # 冰窟
+                            player.update_quest("ice", enemy_name)
                 else:
                     # 20% 概率触发随机事件
                     if random.random() < 0.6:
@@ -733,13 +968,13 @@ def main():
                             pet_name = input(f"你遇到了一只 {pet_type}！给它起个名字: ")
                             player.add_pet(pet_type, pet_name)
             
-            elif choice == 6:
+            elif choice == 9:
                 visit_town(player)
             
-            elif choice == 7:
+            elif choice == 10:
                 shop(player)
             
-            elif choice == 8:
+            elif choice == 11:
                 # Boss挑战
                 boss_combat = BossCombatSystem()
                 boss_encounters = [
@@ -781,12 +1016,12 @@ def main():
                 except ValueError:
                     colored_print("❌ 请输入数字", Colors.RED)
             
-            elif choice == 9:
+            elif choice == 12:
                 player.show_status()
             
-            elif choice == 10:
+            elif choice == 13:
                 equip_items = [item for item in player.inventory 
-                              if item in ["🗡️ 木剑", "⚔️ 铁剑", "🗡️ 精钢剑", "🏹 长弓", "⚔️ 双手剑", "🛡️ 盾牌", "🛡️ 铁甲"]]
+                              if item in ["🗡️ 木剑", "⚔️ 铁剑", "🗡️ 精钢剑", "🏹 长弓", "⚔️ 双手剑", "🛡️ 盾牌", "🛡️ 铁甲", "💀 死灵法杖", "🏔️ 巨人之锤", "👑 王者徽章", "🐉 龙鳞护甲", "⚔️ 传说之剑"]]
                 if equip_items:
                     print("\n🎒 可装备物品:")
                     for i, item in enumerate(equip_items):
@@ -804,7 +1039,7 @@ def main():
                 else:
                     print("❌ 没有可装备的物品")
             
-            elif choice == 11:
+            elif choice == 14:
                 # 宠物管理
                 while True:
                     colored_print("\n🐾 === 宠物管理 ===", Colors.BOLD)
@@ -843,13 +1078,13 @@ def main():
                     except ValueError:
                         colored_print("请输入数字", Colors.RED)
             
-            elif choice == 12:
+            elif choice == 15:
                 player.show_achievements()
             
-            elif choice == 13:
+            elif choice == 16:
                 player.save_game()
             
-            elif choice == 14:
+            elif choice == 17:
                 print("👋 感谢游玩！再见！")
                 break
             
