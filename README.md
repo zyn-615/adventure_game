@@ -601,18 +601,18 @@ HouseBroker (1226-1448) # 房产经纪
 2. 右键点击空白处 → "在此处打开PowerShell窗口"
 3. 输入运行命令:
    ```powershell
-   python .\adventure_game.py
+   python adventure_game.py
    ```
 
 #### 🎮 启动选项
 
 ##### 传统方式 (兼容性最佳)
-```bash
+```cmd
 python adventure_game.py
 ```
 
 ##### 模块化方式 (推荐)
-```bash
+```cmd
 python -m game.main
 ```
 
@@ -634,7 +634,7 @@ python -m game.main
    - 设置 → 配置文件 → 命令提示符 → 字体设置为支持中文的字体
 
 2. **修改命令提示符编码**:
-   ```bash
+   ```cmd
    chcp 65001
    python adventure_game.py
    ```
