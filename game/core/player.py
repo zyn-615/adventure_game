@@ -78,11 +78,36 @@ class Player:
             "accessory": None
         }
         self.quests = {
-            "🐺 森林清理": {"completed": False, "progress": 0, "target": 3, "reward": 100},
-            "🏰 古堡探索": {"completed": False, "progress": 0, "target": 1, "reward": 200},
-            "💎 宝石收集": {"completed": False, "progress": 0, "target": 2, "reward": 150},
-            "🌋 火山征服": {"completed": False, "progress": 0, "target": 2, "reward": 300},
-            "❄️ 冰窟探险": {"completed": False, "progress": 0, "target": 1, "reward": 250}
+            # 基础任务
+            "🐺 森林清理": {"completed": False, "progress": 0, "target": 3, "reward": 100, "type": "combat"},
+            "🏰 古堡探索": {"completed": False, "progress": 0, "target": 1, "reward": 200, "type": "combat"},
+            "💎 宝石收集": {"completed": False, "progress": 0, "target": 2, "reward": 150, "type": "collect"},
+            "🌋 火山征服": {"completed": False, "progress": 0, "target": 2, "reward": 300, "type": "combat"},
+            "❄️ 冰窟探险": {"completed": False, "progress": 0, "target": 1, "reward": 250, "type": "combat"},
+            
+            # 新增区域任务
+            "🌊 深海守护": {"completed": False, "progress": 0, "target": 5, "reward": 400, "type": "combat"},
+            "🏜️ 沙漠商队": {"completed": False, "progress": 0, "target": 3, "reward": 350, "type": "combat"},
+            "🏛️ 地下城净化": {"completed": False, "progress": 0, "target": 4, "reward": 500, "type": "combat"},
+            "🌌 星空探索": {"completed": False, "progress": 0, "target": 2, "reward": 600, "type": "combat"},
+            "🎪 奇幻马戏团": {"completed": False, "progress": 0, "target": 3, "reward": 300, "type": "combat"},
+            
+            # 收集类任务
+            "🧪 炼金材料": {"completed": False, "progress": 0, "target": 5, "reward": 200, "type": "collect"},
+            "📚 古老知识": {"completed": False, "progress": 0, "target": 3, "reward": 250, "type": "collect"},
+            "🎭 神秘面具": {"completed": False, "progress": 0, "target": 1, "reward": 400, "type": "collect"},
+            "🔮 魔法水晶": {"completed": False, "progress": 0, "target": 4, "reward": 350, "type": "collect"},
+            
+            # 挑战类任务
+            "⚔️ 武器大师": {"completed": False, "progress": 0, "target": 1, "reward": 500, "type": "challenge"},
+            "🛡️ 防御专家": {"completed": False, "progress": 0, "target": 1, "reward": 400, "type": "challenge"},
+            "🏆 竞技冠军": {"completed": False, "progress": 0, "target": 10, "reward": 800, "type": "challenge"},
+            "🎯 神射手": {"completed": False, "progress": 0, "target": 50, "reward": 300, "type": "challenge"},
+            
+            # 社交类任务  
+            "🤝 友谊之桥": {"completed": False, "progress": 0, "target": 5, "reward": 200, "type": "social"},
+            "💰 商业帝国": {"completed": False, "progress": 0, "target": 1000, "reward": 100, "type": "social"},
+            "🎨 艺术赞助": {"completed": False, "progress": 0, "target": 3, "reward": 300, "type": "social"}
         }
         self.current_save_slot = None  # 记录当前使用的存档槽位
         self.achievements = {
@@ -449,6 +474,56 @@ class Player:
             if not quest["completed"]:
                 quest["progress"] += 1
                 print(f"📋 任务进度: ❄️ 冰窟探险 ({quest['progress']}/{quest['target']})")
+                if quest["progress"] >= quest["target"]:
+                    quest["completed"] = True
+                    self.gold += quest["reward"]
+                    print(f"🎉 任务完成！获得 {quest['reward']} 金币奖励！")
+        
+        elif quest_type == "ocean" and enemy_name in ["🐙 章鱼", "🦈 鲨鱼", "🐋 海怪"]:
+            quest = self.quests["🌊 深海守护"]
+            if not quest["completed"]:
+                quest["progress"] += 1
+                print(f"📋 任务进度: 🌊 深海守护 ({quest['progress']}/{quest['target']})")
+                if quest["progress"] >= quest["target"]:
+                    quest["completed"] = True
+                    self.gold += quest["reward"]
+                    print(f"🎉 任务完成！获得 {quest['reward']} 金币奖励！")
+        
+        elif quest_type == "desert" and enemy_name in ["🦂 沙漠蝎", "🐍 毒蛇", "🐪 沙漠之王"]:
+            quest = self.quests["🏜️ 沙漠商队"]
+            if not quest["completed"]:
+                quest["progress"] += 1
+                print(f"📋 任务进度: 🏜️ 沙漠商队 ({quest['progress']}/{quest['target']})")
+                if quest["progress"] >= quest["target"]:
+                    quest["completed"] = True
+                    self.gold += quest["reward"]
+                    print(f"🎉 任务完成！获得 {quest['reward']} 金币奖励！")
+        
+        elif quest_type == "dungeon" and enemy_name in ["🧟 僵尸", "🐲 地龙", "👑 地下君主"]:
+            quest = self.quests["🏛️ 地下城净化"]
+            if not quest["completed"]:
+                quest["progress"] += 1
+                print(f"📋 任务进度: 🏛️ 地下城净化 ({quest['progress']}/{quest['target']})")
+                if quest["progress"] >= quest["target"]:
+                    quest["completed"] = True
+                    self.gold += quest["reward"]
+                    print(f"🎉 任务完成！获得 {quest['reward']} 金币奖励！")
+        
+        elif quest_type == "star" and enemy_name in ["⭐ 星灵", "🌟 流星", "🌙 月神使者"]:
+            quest = self.quests["🌌 星空探索"]
+            if not quest["completed"]:
+                quest["progress"] += 1
+                print(f"📋 任务进度: 🌌 星空探索 ({quest['progress']}/{quest['target']})")
+                if quest["progress"] >= quest["target"]:
+                    quest["completed"] = True
+                    self.gold += quest["reward"]
+                    print(f"🎉 任务完成！获得 {quest['reward']} 金币奖励！")
+        
+        elif quest_type == "circus" and enemy_name in ["🤡 魔法小丑", "🎭 变形师", "🎪 马戏团长"]:
+            quest = self.quests["🎪 奇幻马戏团"]
+            if not quest["completed"]:
+                quest["progress"] += 1
+                print(f"📋 任务进度: 🎪 奇幻马戏团 ({quest['progress']}/{quest['target']})")
                 if quest["progress"] >= quest["target"]:
                     quest["completed"] = True
                     self.gold += quest["reward"]

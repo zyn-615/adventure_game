@@ -891,7 +891,14 @@ def main():
         ("❄️ 冰窟", [("🧊 冰元素", 70, 22), ("🐧 冰企鹅", 40, 16), ("🐻‍❄️ 冰熊", 120, 32)]),
         ("🌊 深海", [("🐙 章鱼", 80, 25), ("🦈 鲨鱼", 90, 28), ("🐋 海怪", 150, 35)]),
         ("🏜️ 沙漠", [("🦂 沙漠蝎", 60, 20), ("🐍 毒蛇", 55, 22), ("🐪 沙漠之王", 140, 33)]),
-        ("🏛️ 地下城", [("🧟 僵尸", 70, 24), ("🐲 地龙", 120, 29), ("👑 地下君主", 180, 40)])
+        ("🏛️ 地下城", [("🧟 僵尸", 70, 24), ("🐲 地龙", 120, 29), ("👑 地下君主", 180, 40)]),
+        # 新增区域
+        ("🌌 星空神殿", [("⭐ 星灵", 90, 30), ("🌟 流星", 85, 28), ("🌙 月神使者", 200, 45)]),
+        ("🎪 奇幻马戏团", [("🤡 魔法小丑", 75, 25), ("🎭 变形师", 80, 27), ("🎪 马戏团长", 170, 42)]),
+        ("🏚️ 废弃工厂", [("🤖 失控机器人", 95, 32), ("⚙️ 机械蜘蛛", 70, 26), ("🏭 工厂守卫", 190, 48)]),
+        ("🌺 魔法花园", [("🌸 花仙子", 50, 18), ("🦋 魔法蝴蝶", 45, 15), ("🌳 古树精灵", 160, 35)]),
+        ("🌪️ 风暴之眼", [("⚡ 雷电精灵", 85, 29), ("🌪️ 风暴元素", 100, 34), ("☁️ 云端巨人", 220, 50)]),
+        ("🗻 天空之城", [("👼 天使战士", 110, 36), ("🕊️ 圣光鸽", 65, 22), ("👑 天空王", 250, 55)])
     ]
     
     while player.health > 0:
@@ -906,20 +913,26 @@ def main():
         print("6. 🌊 深海探险")
         print("7. 🏜️ 沙漠远征")
         print("8. 🏛️ 地下城冒险")
-        print("9. 🏘️ 访问城镇")
-        print("10. 🏪 访问商店")
-        print("11. 👑 Boss挑战")
-        print("12. 📊 查看状态")
-        print("13. 🎒 管理装备")
-        print("14. 🐾 宠物管理")
-        print("15. 🏆 查看成就")
-        print("16. 💾 保存游戏")
-        print("17. 🚪 退出游戏")
+        print("9. 🌌 星空神殿")
+        print("10. 🎪 奇幻马戏团")
+        print("11. 🏚️ 废弃工厂")
+        print("12. 🌺 魔法花园")
+        print("13. 🌪️ 风暴之眼")
+        print("14. 🗻 天空之城")
+        print("15. 🏘️ 访问城镇")
+        print("16. 🏪 访问商店")
+        print("17. 👑 Boss挑战")
+        print("18. 📊 查看状态")
+        print("19. 🎒 管理装备")
+        print("20. 🐾 宠物管理")
+        print("21. 🏆 查看成就")
+        print("22. 💾 保存游戏")
+        print("23. 🚪 退出游戏")
         
         try:
-            choice = int(input("\n请选择 (1-17): "))
+            choice = int(input("\n请选择 (1-23): "))
             
-            if choice in [1, 2, 3, 4, 5, 6, 7, 8]:
+            if choice in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]:
                 location_name, enemies = locations[choice-1]
                 print(f"\n🚶 进入 {location_name}...")
                 
@@ -930,6 +943,18 @@ def main():
                     print("🏜️ 炙热的沙漠风吹过你的脸庞，远处的绿洲若隐若现...")
                 elif choice == 8:  # 地下城
                     print("🏛️ 古老的石阶通向地下深处，空气中弥漫着神秘的魔法气息...")
+                elif choice == 9:  # 星空神殿
+                    print("🌌 你踏入璀璨的星空神殿，星辰的光芒洒在古老的石柱上...")
+                elif choice == 10:  # 奇幻马戏团
+                    print("🎪 色彩斑斓的帐篷映入眼帘，空气中回荡着神秘的音乐...")
+                elif choice == 11:  # 废弃工厂
+                    print("🏚️ 锈迹斑斑的机器静静伫立，偶尔传来金属碰撞声...")
+                elif choice == 12:  # 魔法花园
+                    print("🌺 芬芳的花香扑鼻而来，各种奇异的植物散发着魔法光芒...")
+                elif choice == 13:  # 风暴之眼
+                    print("🌪️ 雷电交加的风暴中心，强烈的魔法能量在空中涌动...")
+                elif choice == 14:  # 天空之城
+                    print("🗻 漂浮在云端的城市，圣洁的光芒从城墙中透出...")
                 
                 if random.random() < 0.8:  # 80% 概率遇到敌人
                     enemy_name, enemy_health, enemy_attack = random.choice(enemies)
@@ -953,6 +978,16 @@ def main():
                             player.update_quest("volcano", enemy_name)
                         elif choice == 5:  # 冰窟
                             player.update_quest("ice", enemy_name)
+                        elif choice == 6:  # 深海
+                            player.update_quest("ocean", enemy_name)
+                        elif choice == 7:  # 沙漠
+                            player.update_quest("desert", enemy_name)
+                        elif choice == 8:  # 地下城
+                            player.update_quest("dungeon", enemy_name)
+                        elif choice == 9:  # 星空神殿
+                            player.update_quest("star", enemy_name)
+                        elif choice == 10:  # 奇幻马戏团
+                            player.update_quest("circus", enemy_name)
                 else:
                     # 20% 概率触发随机事件
                     if random.random() < 0.6:
@@ -968,13 +1003,13 @@ def main():
                             pet_name = input(f"你遇到了一只 {pet_type}！给它起个名字: ")
                             player.add_pet(pet_type, pet_name)
             
-            elif choice == 9:
+            elif choice == 15:
                 visit_town(player)
             
-            elif choice == 10:
+            elif choice == 16:
                 shop(player)
             
-            elif choice == 11:
+            elif choice == 17:
                 # Boss挑战
                 boss_combat = BossCombatSystem()
                 boss_encounters = [
@@ -1016,10 +1051,10 @@ def main():
                 except ValueError:
                     colored_print("❌ 请输入数字", Colors.RED)
             
-            elif choice == 12:
+            elif choice == 18:
                 player.show_status()
             
-            elif choice == 13:
+            elif choice == 19:
                 equip_items = [item for item in player.inventory 
                               if item in ["🗡️ 木剑", "⚔️ 铁剑", "🗡️ 精钢剑", "🏹 长弓", "⚔️ 双手剑", "🛡️ 盾牌", "🛡️ 铁甲", "💀 死灵法杖", "🏔️ 巨人之锤", "👑 王者徽章", "🐉 龙鳞护甲", "⚔️ 传说之剑"]]
                 if equip_items:
@@ -1039,7 +1074,7 @@ def main():
                 else:
                     print("❌ 没有可装备的物品")
             
-            elif choice == 14:
+            elif choice == 20:
                 # 宠物管理
                 while True:
                     colored_print("\n🐾 === 宠物管理 ===", Colors.BOLD)
@@ -1078,13 +1113,13 @@ def main():
                     except ValueError:
                         colored_print("请输入数字", Colors.RED)
             
-            elif choice == 15:
+            elif choice == 21:
                 player.show_achievements()
             
-            elif choice == 16:
+            elif choice == 22:
                 player.save_game()
             
-            elif choice == 17:
+            elif choice == 23:
                 print("👋 感谢游玩！再见！")
                 break
             
